@@ -68,6 +68,7 @@ class DispatcherThread(threading.Thread):
             address: 客户端地址
         """
         sender = SenderThread(client_socket, address, self.new_client_id)
+        sender.log = self.log
         self.clients[self.new_client_id] = sender
         self.new_client_id += 1
         sender.start()

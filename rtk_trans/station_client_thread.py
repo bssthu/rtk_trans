@@ -9,7 +9,7 @@
 import socket
 import threading
 import time
-from rtk_trans import log
+from rtk_trans.station_connection_thread import StationConnectionThread
 
 BUFFER_SIZE = 4096
 
@@ -29,6 +29,7 @@ class StationClientThread(threading.Thread):
         self.server_ip = server_ip
         self.server_port = server_port
         self.got_data_cb = got_data_cb
+        self.connection_thread = None
         self.rcv_count = 0
         self.log = None
         self.running = True
@@ -38,49 +39,30 @@ class StationClientThread(threading.Thread):
 
         循环运行，建立连接、接收数据，并在连接出错时重连。
         """
-        self.log.info('client thread: start')
+        self.log.info('station client thread: start')
         while self.running:
             try:
                 self.receive_data()
             except Exception as e:
-                self.log.error('client thread error: %s' % e)
+                self.log.error('station client thread error: %s' % e)
                 time.sleep(3)
-        self.log.info('client thread: bye')
+        if self.connection_thread is not None and self.connection_thread.is_alive():
+            self.connection_thread.running = False
+            self.connection_thread.join()
+        self.log.info('station client thread: bye')
 
     def receive_data(self):
         """建立连接并循环接收数据
 
         在超时时重连，在出错时返回。
         """
-        client = self.connect()
-        self.log.info('client thread: connected')
-        timeout_count = 0
-        while self.running:
-            try:
-                # 接收数据
-                data = client.recv(BUFFER_SIZE)
-                # 连接失败的处理
-                if len(data) == 0:
-                    raise RuntimeError('socket connection broken')
-                # 收到数据后的处理
-                self.rcv_count += 1
-                self.log.debug('rcv %d bytes. id: %d' % (len(data), self.rcv_count))
-                self.got_data_cb(data, self.rcv_count)
-                timeout_count = 0
-            except socket.timeout:
-                # 超时处理，超时5次时主动重连
-                # 超时时间短是为了在需要时能快速退出
-                timeout_count += 1
-                if timeout_count >= 5:
-                    timeout_count = 0
-                    client = self.reconnect(client)
-                    self.log.debug('client timeout, reconnect')
-        try:
-            client.close()
-        except socket.error:
-            pass
-        except Exception as e:
-            self.log.error('client exception when close: %s' % e)
+        conn = self.connect()
+        self.log.info('station client thread: connected')
+        self.connection_thread = StationConnectionThread(conn, str((self.server_ip, self.server_port)), self.got_data_cb)
+        self.connection_thread.log = self.log
+        self.connection_thread.start()
+        while self.running and self.connection_thread.is_alive():
+            self.connection_thread.join(timeout=1)
 
     def connect(self):
         """尝试建立连接并设置超时参数"""
@@ -98,5 +80,5 @@ class StationClientThread(threading.Thread):
         try:
             client.close()
         except:
-            self.log.error('client exception when close.')
+            self.log.error('station client exception when close.')
         return self.connect()
