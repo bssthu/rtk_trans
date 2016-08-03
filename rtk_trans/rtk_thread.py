@@ -6,12 +6,8 @@
 # Description   : socket 转发数据
 # 
 
-import os
-import sys
-import json
 import threading
 import time
-import signal
 from rtk_trans import log
 from rtk_trans.control_thread import ControlThread
 from rtk_trans.station_client_thread import StationClientThread
@@ -43,7 +39,9 @@ class RtkThread(threading.Thread):
             raise Exception('Unrecognized station mode "%s". Should be "server" or "client". %s' % self.station_mode)
         self.listen_port = config['listenPort']
         self.control_port = config['controlPort']
-        self.enable_log = config['enableLog']
+        self.enable_log = bool(config['enableLog'])
+        # log init
+        self.log = log.Log(name, self.enable_log)
 
     def config_equals(self, config):
         """判断配置是否发生了变化
@@ -57,7 +55,7 @@ class RtkThread(threading.Thread):
                     self.station_mode == config['stationMode'].lower() and \
                     self.listen_port == config['listenPort'] and \
                     self.control_port == config['controlPort'] and \
-                    self.enable_log == config['enableLog']:
+                    self.enable_log == bool(config['enableLog']):
                 return True
         except:
             pass
@@ -98,13 +96,18 @@ class RtkThread(threading.Thread):
                 self.controller.msg_queue.put('%d: %s, %d\r\n' % (sender.sender_id, sender.address, sender.send_count))
 
     def run(self):
-        # TODO: log init
+        self.log.info('rtk thread: start')
 
         # threads
         self.server = ServerThread(self.listen_port, self.got_client_cb)
         self.controller = ControlThread(self.control_port, self.got_command_cb)
         self.dispatcher = DispatcherThread()
         self.station = StationClientThread(self.station_ip_address, self.station_port, self.got_data_cb)
+
+        self.server.log = self.log
+        self.controller.log = self.log
+        self.dispatcher.log = self.log
+        self.station.log = self.log
 
         self.server.start()
         self.controller.start()
@@ -124,4 +127,6 @@ class RtkThread(threading.Thread):
         self.server.join()
         self.dispatcher.running = False
         self.dispatcher.join()
-        log.info('rtk: bye')
+
+        self.log.info('rtk thread: bye')
+        self.log.close()

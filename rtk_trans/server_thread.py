@@ -24,6 +24,7 @@ class ServerThread(threading.Thread):
         super().__init__()
         self.port = port
         self.got_client_cb = got_client_cb
+        self.log = None
         self.running = True
 
     def run(self):
@@ -31,7 +32,7 @@ class ServerThread(threading.Thread):
 
         循环运行，接受新的客户端的连接。
         """
-        log.info('server thread: start, port: %d' % self.port)
+        self.log.info('server thread: start, port: %d' % self.port)
         try:
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -43,11 +44,11 @@ class ServerThread(threading.Thread):
                     conn, address = server.accept()
                     conn.settimeout(3)
                     self.got_client_cb(conn, address)
-                    log.debug('new client from: %s' % str(address))
+                    self.log.debug('new client from: %s' % str(address))
                 except socket.timeout:
                     pass
             server.close()
-            log.info('server thread: bye')
+            self.log.info('server thread: bye')
         except Exception as e:
-            log.error('server thread error: %s' % e)
+            self.log.error('server thread error: %s' % e)
             self.running = False

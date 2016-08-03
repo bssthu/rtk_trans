@@ -29,6 +29,7 @@ class SenderThread(threading.Thread):
         self.sender_id = _id
         self.data_queue = queue.Queue()
         self.send_count = 0
+        self.log = None
         self.running = True
 
     def run(self):
@@ -37,7 +38,7 @@ class SenderThread(threading.Thread):
         循环运行，接收来自客户端的数据并丢弃，向客户端发送 data_queue 中的数据包。
         当 data_queue 过长时，丢弃旧的数据包。
         """
-        log.info('sender thread %d: start, %s' % (self.sender_id, self.address))
+        self.log.info('sender thread %d: start, %s' % (self.sender_id, self.address))
         while self.running:
             try:
                 # ignore old data
@@ -51,7 +52,7 @@ class SenderThread(threading.Thread):
                     self.send_count += 1
                     self.data_queue.task_done()
                 except ValueError as e:
-                    log.warning('sender thread %d ValueError: %s' % (self.sender_id, e))
+                    self.log.warning('sender thread %d ValueError: %s' % (self.sender_id, e))
                 # rcv useless data
                 try:
                     self.client_socket.settimeout(0.1)
@@ -61,10 +62,10 @@ class SenderThread(threading.Thread):
             except queue.Empty:
                 pass
             except Exception as e:
-                log.error('sender thread %d error: %s' % (self.sender_id, e))
+                self.log.error('sender thread %d error: %s' % (self.sender_id, e))
                 self.running = False
         self.disconnect()
-        log.info('sender thread %d: bye' % self.sender_id)
+        self.log.info('sender thread %d: bye' % self.sender_id)
 
     def disconnect(self):
         """断开连接"""
@@ -73,4 +74,4 @@ class SenderThread(threading.Thread):
         except socket.error:
             pass
         except Exception as e:
-            log.error('sender thread %d exception when close: %s' % (self.sender_id, e))
+            self.log.error('sender thread %d exception when close: %s' % (self.sender_id, e))

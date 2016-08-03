@@ -30,6 +30,7 @@ class StationClientThread(threading.Thread):
         self.server_port = server_port
         self.got_data_cb = got_data_cb
         self.rcv_count = 0
+        self.log = None
         self.running = True
 
     def run(self):
@@ -37,14 +38,14 @@ class StationClientThread(threading.Thread):
 
         循环运行，建立连接、接收数据，并在连接出错时重连。
         """
-        log.info('client thread: start')
+        self.log.info('client thread: start')
         while self.running:
             try:
                 self.receive_data()
             except Exception as e:
-                log.error('client thread error: %s' % e)
+                self.log.error('client thread error: %s' % e)
                 time.sleep(3)
-        log.info('client thread: bye')
+        self.log.info('client thread: bye')
 
     def receive_data(self):
         """建立连接并循环接收数据
@@ -52,7 +53,7 @@ class StationClientThread(threading.Thread):
         在超时时重连，在出错时返回。
         """
         client = self.connect()
-        log.info('client thread: connected')
+        self.log.info('client thread: connected')
         timeout_count = 0
         while self.running:
             try:
@@ -63,7 +64,7 @@ class StationClientThread(threading.Thread):
                     raise RuntimeError('socket connection broken')
                 # 收到数据后的处理
                 self.rcv_count += 1
-                log.debug('rcv %d bytes. id: %d' % (len(data), self.rcv_count))
+                self.log.debug('rcv %d bytes. id: %d' % (len(data), self.rcv_count))
                 self.got_data_cb(data, self.rcv_count)
                 timeout_count = 0
             except socket.timeout:
@@ -73,13 +74,13 @@ class StationClientThread(threading.Thread):
                 if timeout_count >= 5:
                     timeout_count = 0
                     client = self.reconnect(client)
-                    log.debug('client timeout, reconnect')
+                    self.log.debug('client timeout, reconnect')
         try:
             client.close()
         except socket.error:
             pass
         except Exception as e:
-            log.error('client exception when close: %s' % e)
+            self.log.error('client exception when close: %s' % e)
 
     def connect(self):
         """尝试建立连接并设置超时参数"""
@@ -97,5 +98,5 @@ class StationClientThread(threading.Thread):
         try:
             client.close()
         except:
-            log.error('client exception when close.')
+            self.log.error('client exception when close.')
         return self.connect()

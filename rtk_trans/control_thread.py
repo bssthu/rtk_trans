@@ -34,13 +34,14 @@ class ControlThread(threading.Thread):
         self.is_in_command = False
         self.msg_queue = queue.Queue()
         self.running = True
+        self.log = None
 
     def run(self):
         """线程主函数
 
         循环运行，接受到控制端口的 socket 连接（唯一），接收命令。
         """
-        log.info('control thread: start, port: %d' % self.port)
+        self.log.info('control thread: start, port: %d' % self.port)
         try:
             # 开始监听
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,9 +57,9 @@ class ControlThread(threading.Thread):
                 self.send_message()
             server.close()
             self.disconnect_client()
-            log.info('control thread: bye')
+            self.log.info('control thread: bye')
         except Exception as e:
-            log.error('control thread error: %s' % e)
+            self.log.error('control thread error: %s' % e)
             self.running = False
 
     def accept_client(self, server):
@@ -74,7 +75,7 @@ class ControlThread(threading.Thread):
             self.disconnect_client()
             self.client = conn
             self.client.settimeout(3)
-            log.info('new control client from: %s' % str(address))
+            self.log.info('new control client from: %s' % str(address))
         except socket.timeout:
             pass
 
@@ -89,7 +90,7 @@ class ControlThread(threading.Thread):
             except socket.timeout:      # 允许超时
                 pass
             except Exception as e:
-                log.error('control client error: %s' % e)
+                self.log.error('control client error: %s' % e)
                 self.disconnect_client()
 
     def resolve_command(self):
@@ -106,14 +107,14 @@ class ControlThread(threading.Thread):
                     if self.is_in_command:      # 没有遇到结尾，收到的指令还不完整
                         break
                     elif isinstance(command, str):      # 收到了指令
-                        log.info('control command: %s' % command)
+                        self.log.info('control command: %s' % command)
                         self.got_command_cb(command)
                 elif self.buffer[:4] == CMD_BEGIN:  # begin of command
                     self.is_in_command = True
                 else:
                     del self.buffer[0]      # 出队一个字节
             except Exception as e:
-                log.warning('control thread resolve: %s' % e)
+                self.log.warning('control thread resolve: %s' % e)
 
     def resolve_command_from_begin(self):
         """从 buffer 的起点开始解析"""
@@ -137,7 +138,7 @@ class ControlThread(threading.Thread):
         if len(data) == 0:
             raise RuntimeError('socket connection broken')
         self.buffer.extend(data)
-        log.debug('control rcv %d bytes.' % len(data))
+        self.log.debug('control rcv %d bytes.' % len(data))
 
     def send_message(self):
         """向控制端口发送数据
@@ -170,7 +171,7 @@ class ControlThread(threading.Thread):
             except socket.error:
                 pass
             except Exception as e:
-                log.error('control client exception when close: %s' % e)
+                self.log.error('control client exception when close: %s' % e)
         # clean up
         self.client = None
         self.buffer.clear()

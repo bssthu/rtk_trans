@@ -20,6 +20,8 @@ class DispatcherThread(threading.Thread):
         super().__init__()
         self.data_queue = queue.Queue()
         self.clients = {}
+        self.new_client_id = 0
+        self.log = None
         self.running = True
 
     def run(self):
@@ -27,20 +29,20 @@ class DispatcherThread(threading.Thread):
 
         循环运行，不断把 self.data_queue 中的数据包分发给各 SenderThread
         """
-        log.info('dispatcher thread: start')
+        self.log.info('dispatcher thread: start')
         while self.running:
             try:
                 data, rcv_count = self.data_queue.get(timeout=1)
                 try:
                     num_clients = self.send_data(data)
                     self.data_queue.task_done()
-                    log.debug('send %d bytes to %d clients. id: %d' % (len(data), num_clients, rcv_count))
+                    self.log.debug('send %d bytes to %d clients. id: %d' % (len(data), num_clients, rcv_count))
                 except Exception as e:
-                    log.error('dispatcher thread error: %s' % e)
+                    self.log.error('dispatcher thread error: %s' % e)
             except queue.Empty:
                 pass
         self.stop_all_clients()
-        log.info('dispatcher thread: bye')
+        self.log.info('dispatcher thread: bye')
 
     def send_data(self, data):
         """分发数据
@@ -65,9 +67,9 @@ class DispatcherThread(threading.Thread):
             client_socket: 与客户端通信的 socket
             address: 客户端地址
         """
-        sender = SenderThread(client_socket, address, DispatcherThread.new_client_id)
-        self.clients[DispatcherThread.new_client_id] = sender
-        DispatcherThread.new_client_id += 1
+        sender = SenderThread(client_socket, address, self.new_client_id)
+        self.clients[self.new_client_id] = sender
+        self.new_client_id += 1
         sender.start()
 
     def stop_all_clients(self):
@@ -76,5 +78,3 @@ class DispatcherThread(threading.Thread):
             sender.running = False
         for _id, sender in self.clients.items():
             sender.join()
-
-DispatcherThread.new_client_id = 0

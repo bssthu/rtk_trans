@@ -20,6 +20,8 @@ class Rtk:
         self.rtk_threads = {}
         self.thread_count = 0
         self.is_interrupt = False
+        # log init
+        self.log = log.Log('rtk', True)
 
     def exit_by_signal(self, signum, frame):
         """响应 SIGINT"""
@@ -34,7 +36,7 @@ class Rtk:
                 if key == 'q':
                     break
                 elif key == 'r':
-                    log.info('main: reload config.')
+                    self.log.info('main: reload config.')
                     self.start_threads_from_config()
         except KeyboardInterrupt:
             pass
@@ -52,7 +54,7 @@ class Rtk:
             with open(config_file_name) as config_fp:
                 configs = json.load(config_fp)
         except Exception as e:
-            log.error('main: failed to load config from conf/config.json: %s' % e)
+            self.log.error('main: failed to load config from conf/config.json: %s' % e)
             return
 
         # threads
@@ -73,7 +75,7 @@ class Rtk:
                         rtk_thread.start()
                         self.rtk_threads[name] = rtk_thread
                     except Exception as e:
-                        log.error('main: failed to start thread %s: %s' % (name, e))
+                        self.log.error('main: failed to start thread %s: %s' % (name, e))
 
     def stop_thread(self, name):
         """停止某 rtk 线程，不等待
@@ -88,9 +90,9 @@ class Rtk:
                 rtk_thread = self.rtk_threads[name]
                 if isinstance(rtk_thread, RtkThread) and rtk_thread.is_alive():
                     rtk_thread.running = False
-                    log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
+                    self.log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
         except Exception as e:
-            log.error('main: failed to stop thread %s: %s' % (name, e))
+            self.log.error('main: failed to stop thread %s: %s' % (name, e))
 
     def wait_for_thread(self, name):
         """等待某 rtk 线程完全退出
@@ -106,11 +108,11 @@ class Rtk:
                 if isinstance(rtk_thread, RtkThread) and rtk_thread.is_alive():
                     # wait
                     rtk_thread.join()
-                log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))
+                self.log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))
                 # remove
                 del self.rtk_threads[name]
         except Exception as e:
-            log.error('main: error when wait for thread %s: %s' % (name, e))
+            self.log.error('main: error when wait for thread %s: %s' % (name, e))
 
     def stop_and_wait_for_thread(self, name):
         """停止某 rtk 线程，等待直到退出成功
@@ -122,9 +124,7 @@ class Rtk:
         self.wait_for_thread(name)
 
     def main(self):
-        # log init
-        log.initialize_logging(True)
-        log.info('main: start')
+        self.log.info('main: start')
 
         # start rtk
         self.start_threads_from_config()
@@ -137,4 +137,5 @@ class Rtk:
             self.stop_thread(name)
         for name in sorted(self.rtk_threads.keys()):
             self.wait_for_thread(name)
-        log.info('main: bye')
+        self.log.info('main: bye')
+        self.log.close()
