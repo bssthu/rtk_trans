@@ -12,66 +12,30 @@ import json
 import time
 import signal
 from rtk_trans import log
-from rtk_trans.control_thread import ControlThread
-from rtk_trans.client_thread import ClientThread
-from rtk_trans.dispatcher_thread import DispatcherThread
-from rtk_trans.server_thread import ServerThread
+from rtk_trans.rtk_thread import RtkThread
 
 
 class Rtk:
     def __init__(self):
-        self.server = None
-        self.controller = None
-        self.dispatcher = None
-        self.client = None
+        self.rtk_threads = {}
+        self.thread_count = 0
         self.is_interrupt = False
 
-    def got_data_cb(self, data, rcv_count):
-        """接收到差分数据的回调函数
-
-        Args:
-            data: 收到的数据包
-            rcv_count: 收到的数据包的编号
-        """
-        self.dispatcher.data_queue.put((data, rcv_count))
-
-    def got_client_cb(self, client_socket, address):
-        """接受来自下层客户端的 socket 连接的回调函数
-
-        Args:
-            client_socket: 与客户端连接的 socket
-            address: 客户端地址
-        """
-        self.dispatcher.add_client(client_socket, address)
-
-    def got_command_cb(self, command):
-        """接收到来自控制端口的指令的回调函数
-
-        Args:
-            command: 待处理的命令
-        """
-        if command == 'reset server':
-            old_dispatcher = self.dispatcher
-            self.dispatcher = DispatcherThread()
-            old_dispatcher.running = False
-            self.dispatcher.start()
-        elif command == 'list':
-            self.controller.msg_queue.put('client count: %d\r\n' % len(self.dispatcher.clients))
-            for _id, sender in self.dispatcher.clients.copy().items():
-                self.controller.msg_queue.put('%d: %s, %d\r\n' % (sender.sender_id, sender.address, sender.send_count))
-
     def exit_by_signal(self, signum, frame):
+        """响应 SIGINT"""
         self.is_interrupt = True
 
     def wait_for_keyboard(self):
         """quit when press q or press ctrl-c, or exception from other threads"""
         try:
-            print("enter 'q' to quit")
-            while input() != 'q':
-                print("enter 'q' to quit. rcv count: %d, client count: %d"
-                      % (self.client.rcv_count, len(self.dispatcher.clients)))
-                if not self.client.running or not self.server.running:
+            while True:
+                print("enter 'q' to quit, 'r' to reload.")
+                key = input().lower().strip()
+                if key == 'q':
                     break
+                elif key == 'r':
+                    log.info('main: reload config.')
+                    self.start_threads_from_config()
         except KeyboardInterrupt:
             pass
         except EOFError:
@@ -79,44 +43,98 @@ class Rtk:
             signal.signal(signal.SIGINT, self.exit_by_signal)
             while not self.is_interrupt:
                 time.sleep(1)
-                if not self.client.running or not self.server.running:
-                    break
 
-    def main(self):
+    def start_threads_from_config(self):
+        """读取配置文件，启动所有 rtk 线程"""
         # config
         config_file_name = os.path.join(sys.path[0], 'conf/config.json')
         try:
             with open(config_file_name) as config_fp:
                 configs = json.load(config_fp)
-        except:
-            print('failed to load config from config.json.')
+        except Exception as e:
+            log.error('main: failed to load config from conf/config.json: %s' % e)
             return
 
+        # threads
+        if 'entry' in configs.keys():
+            entries = configs['entry']
+            if isinstance(entries, dict):
+                for name, config in entries.items():
+                    # start one thread
+                    try:
+                        if name in self.rtk_threads.keys():
+                            rtk_thread = self.rtk_threads[name]
+                            # 判断配置是否发生改变，如果不变就跳过
+                            if rtk_thread.config_equals(config):
+                                continue
+                            self.stop_and_wait_for_thread(name)
+                        rtk_thread = RtkThread(name, self.thread_count, config)
+                        self.thread_count += 1
+                        rtk_thread.start()
+                        self.rtk_threads[name] = rtk_thread
+                    except Exception as e:
+                        log.error('main: failed to start thread %s: %s' % (name, e))
+
+    def stop_thread(self, name):
+        """停止某 rtk 线程，不等待
+
+        之后需要调用 wait_for_thread
+
+        Args:
+            name: rtk 线程名
+        """
+        try:
+            if name in self.rtk_threads.keys():
+                rtk_thread = self.rtk_threads[name]
+                if isinstance(rtk_thread, RtkThread) and rtk_thread.is_alive():
+                    rtk_thread.running = False
+                    log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
+        except Exception as e:
+            log.error('main: failed to stop thread %s: %s' % (name, e))
+
+    def wait_for_thread(self, name):
+        """等待某 rtk 线程完全退出
+
+        在 stop_thread 之后调用
+
+        Args:
+            name: rtk 线程名
+        """
+        try:
+            if name in self.rtk_threads.keys():
+                rtk_thread = self.rtk_threads[name]
+                if isinstance(rtk_thread, RtkThread) and rtk_thread.is_alive():
+                    # wait
+                    rtk_thread.join()
+                log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))
+                # remove
+                del self.rtk_threads[name]
+        except Exception as e:
+            log.error('main: error when wait for thread %s: %s' % (name, e))
+
+    def stop_and_wait_for_thread(self, name):
+        """停止某 rtk 线程，等待直到退出成功
+
+        Args:
+            name: rtk 线程名
+        """
+        self.stop_thread(name)
+        self.wait_for_thread(name)
+
+    def main(self):
         # log init
-        log.initialize_logging(configs['enableLog'].lower() == 'true')
+        log.initialize_logging(True)
         log.info('main: start')
 
-        # threads
-        self.server = ServerThread(configs['listenPort'], self.got_client_cb)
-        self.controller = ControlThread(configs['controlPort'], self.got_command_cb)
-        self.dispatcher = DispatcherThread()
-        self.client = ClientThread(configs['serverIpAddress'], configs['serverPort'], self.got_data_cb)
-
-        self.server.start()
-        self.controller.start()
-        self.dispatcher.start()
-        self.client.start()
+        # start rtk
+        self.start_threads_from_config()
 
         # wait
         self.wait_for_keyboard()
 
         # quit & clean up
-        self.controller.running = False
-        self.controller.join()
-        self.client.running = False
-        self.client.join()
-        self.server.running = False
-        self.server.join()
-        self.dispatcher.running = False
-        self.dispatcher.join()
+        for name in self.rtk_threads.keys():
+            self.stop_thread(name)
+        for name in sorted(self.rtk_threads.keys()):
+            self.wait_for_thread(name)
         log.info('main: bye')

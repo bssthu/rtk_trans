@@ -1,7 +1,20 @@
 {
-    "serverIpAddress": "127.0.0.1",
-    "serverPort": 10000,
-    "listenPort": 10000,
-    "controlPort": 10001,
-    "enableLog": "true"
+    "entry": {
+        "local": {
+            "stationIpAddress": "127.0.0.1",
+            "stationPort": 10000,
+            "stationMode": "server",
+            "listenPort": 10002,
+            "controlPort": 10001,
+            "enableLog": "true"
+        },
+        "remote": {
+            "stationIpAddress": "192.168.1.1",
+            "stationPort": 10000,
+            "stationMode": "client",
+            "listenPort": 11002,
+            "controlPort": 11001,
+            "enableLog": "true"
+        }
+    }
 }

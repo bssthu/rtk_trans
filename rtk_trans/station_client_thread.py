@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-# File          : client_thread.py
+# File          : station_client_thread.py
 # Author        : bssthu
 # Project       : rtk_trans
 # Description   : 
@@ -14,8 +14,8 @@ from rtk_trans import log
 BUFFER_SIZE = 4096
 
 
-class ClientThread(threading.Thread):
-    """从差分源服务器接收数据的线程"""
+class StationClientThread(threading.Thread):
+    """从差分源服务器接收数据的线程，差分源为 tcp server, 本地为 tcp client"""
 
     def __init__(self, server_ip, server_port, got_data_cb):
         """构造函数
