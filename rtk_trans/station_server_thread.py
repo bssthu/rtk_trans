@@ -59,12 +59,19 @@ class StationServerThread(threading.Thread):
             self.running = False
 
     def got_client(self, conn, address):
-        # stop old
+        """新客户端连入时的处理
+
+        Args:
+            conn: client socket
+            address: 地址 str
+        """
         if self.connection_thread is not None and self.connection_thread.is_alive():
+            # stop old
             self.log.info('stopping existing station connection thread.')
             self.connection_thread.running = False
             self.connection_thread.join()
             self.connection_thread = None
+        # start connection thread
         self.connection_thread = StationConnectionThread(conn, address, self.got_data_cb)
         self.connection_thread.log = self.log
         self.connection_thread.start()

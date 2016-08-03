@@ -100,6 +100,13 @@ class RtkThread(threading.Thread):
             for _id, sender in self.dispatcher.clients.copy().items():
                 self.controller.msg_queue.put('%d: %s, %d\r\n' % (sender.sender_id, sender.address, sender.send_count))
 
+    def stop_thread(self, name, thread_to_stop):
+        try:
+            thread_to_stop.running = False
+            thread_to_stop.join()
+        except Exception as e:
+            self.log.error('rtk thread: failed to stop thread %s: %s' % (name, e))
+
     def run(self):
         self.log.info('rtk thread: start')
 
@@ -130,16 +137,10 @@ class RtkThread(threading.Thread):
             time.sleep(2)
 
         # quit & clean up
-        self.controller.running = False
-        self.controller.join()
-        self.station.running = False
-        self.station.join()
-        self.server.running = False
-        self.server.join()
-        self.dispatcher.running = False
-        self.dispatcher.join()
-        self.station.running = False
-        self.station.join()
+        self.stop_thread('controller', self.controller)
+        self.stop_thread('station', self.station)
+        self.stop_thread('server', self.server)
+        self.stop_thread('dispatcher', self.dispatcher)
 
         self.log.info('rtk thread: bye')
         self.log.close()

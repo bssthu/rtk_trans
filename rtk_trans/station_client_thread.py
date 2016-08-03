@@ -58,9 +58,11 @@ class StationClientThread(threading.Thread):
         """
         conn = self.connect()
         self.log.info('station client thread: connected')
+        # start connection thread
         self.connection_thread = StationConnectionThread(conn, str((self.server_ip, self.server_port)), self.got_data_cb)
         self.connection_thread.log = self.log
         self.connection_thread.start()
+        # wait for connection thread
         while self.running and self.connection_thread.is_alive():
             self.connection_thread.join(timeout=1)
 
