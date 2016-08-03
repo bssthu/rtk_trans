@@ -15,5 +15,9 @@
             "controlPort": 11001,
             "enableLog": "true"
         }
+    },
+    "webInterface": {
+        "allow": "true",
+        "port": 20000
     }
 }

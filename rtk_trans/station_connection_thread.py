@@ -8,6 +8,7 @@
 
 import socket
 import threading
+from rtk_trans.http_thread import RtkStatus
 
 BUFFER_SIZE = 4096
 
@@ -15,14 +16,16 @@ BUFFER_SIZE = 4096
 class StationConnectionThread(threading.Thread):
     """负责与差分源客户端通信的线程"""
 
-    def __init__(self, client_socket, address, got_data_cb):
+    def __init__(self, name, client_socket, address, got_data_cb):
         """构造函数
 
         Args:
+            name: rtk 服务名
             client_socket: 与客户端通信的 socket
             address: 客户端地址
         """
         super().__init__()
+        self.name = name
         self.client_socket = client_socket
         self.address = address
         self.got_data_cb = got_data_cb
@@ -37,10 +40,12 @@ class StationConnectionThread(threading.Thread):
         当 data_queue 过长时，丢弃旧的数据包。
         """
         self.log.info('station connection thread: start, %s' % self.address)
+        RtkStatus.update_status(self.name, RtkStatus.S_CONNECTED)
         try:
             self.receive_data()
         except Exception as e:
             self.log.error('station connection thread error: %s' % e)
+        RtkStatus.update_status(self.name, RtkStatus.S_DISCONNECTED)
         self.log.info('station connection thread: bye')
 
     def receive_data(self):

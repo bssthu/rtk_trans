@@ -14,14 +14,16 @@ from rtk_trans.station_connection_thread import StationConnectionThread
 class StationServerThread(threading.Thread):
     """从差分源服务器接收数据的线程，差分源为 tcp client, 本地为 tcp server"""
 
-    def __init__(self, port, got_data_cb):
+    def __init__(self, name, port, got_data_cb):
         """构造函数
 
         Args:
+            name: rtk 服务名
             port: 监听的端口
             got_data_cb: 接收到数据包时调用的回调函数
         """
         super().__init__()
+        self.name = name
         self.port = port
         self.got_data_cb = got_data_cb
         self.connection_thread = None
@@ -72,6 +74,6 @@ class StationServerThread(threading.Thread):
             self.connection_thread.join()
             self.connection_thread = None
         # start connection thread
-        self.connection_thread = StationConnectionThread(conn, address, self.got_data_cb)
+        self.connection_thread = StationConnectionThread(self.name, conn, address, self.got_data_cb)
         self.connection_thread.log = self.log
         self.connection_thread.start()

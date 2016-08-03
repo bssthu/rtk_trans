@@ -17,15 +17,17 @@ BUFFER_SIZE = 4096
 class StationClientThread(threading.Thread):
     """从差分源服务器接收数据的线程，差分源为 tcp server, 本地为 tcp client"""
 
-    def __init__(self, server_ip, server_port, got_data_cb):
+    def __init__(self, name, server_ip, server_port, got_data_cb):
         """构造函数
 
         Args:
+            name: rtk 服务名
             server_ip: 差分源服务器IP地址
             server_port: 差分源服务器端口
             got_data_cb: 接收到数据包时调用的回调函数
         """
         super().__init__()
+        self.name = name
         self.server_ip = server_ip
         self.server_port = server_port
         self.got_data_cb = got_data_cb
@@ -42,24 +44,31 @@ class StationClientThread(threading.Thread):
         self.log.info('station client thread: start')
         while self.running:
             try:
-                self.receive_data()
+                # 建立连接
+                conn = self.connect()
+                self.log.info('station client thread: connected')
+                # 开启数据接收线程
+                self.run_receive_data_thread(conn)
             except Exception as e:
                 self.log.error('station client thread error: %s' % e)
                 time.sleep(3)
+        # disconnect
         if self.connection_thread is not None and self.connection_thread.is_alive():
             self.connection_thread.running = False
             self.connection_thread.join()
         self.log.info('station client thread: bye')
 
-    def receive_data(self):
-        """建立连接并循环接收数据
+    def run_receive_data_thread(self, conn):
+        """循环接收数据
 
-        在超时时重连，在出错时返回。
+        在超时时返回（重连），在出错时返回（重连）。
+
+        Args:
+            conn: 新建的连接 socket
         """
-        conn = self.connect()
-        self.log.info('station client thread: connected')
         # start connection thread
-        self.connection_thread = StationConnectionThread(conn, str((self.server_ip, self.server_port)), self.got_data_cb)
+        address = str((self.server_ip, self.server_port))
+        self.connection_thread = StationConnectionThread(self.name, conn, address, self.got_data_cb)
         self.connection_thread.log = self.log
         self.connection_thread.start()
         # wait for connection thread

@@ -14,6 +14,7 @@ from rtk_trans.dispatcher_thread import DispatcherThread
 from rtk_trans.server_thread import ServerThread
 from rtk_trans.station_client_thread import StationClientThread
 from rtk_trans.station_server_thread import StationServerThread
+from rtk_trans.http_thread import RtkStatus
 
 
 class RtkThread(threading.Thread):
@@ -21,7 +22,7 @@ class RtkThread(threading.Thread):
         """初始化
 
         Args:
-            name: 线程名
+            name: rtk 线程名
             thread_id: 线程 id
             config: 配置 dict
         """
@@ -43,7 +44,7 @@ class RtkThread(threading.Thread):
         self.station_port = config['stationPort']
         self.listen_port = config['listenPort']
         self.control_port = config['controlPort']
-        self.enable_log = bool(config['enableLog'])
+        self.enable_log = config['enableLog'].lower() == 'true'
         # log init
         self.log = log.Log(name, self.enable_log)
 
@@ -58,7 +59,7 @@ class RtkThread(threading.Thread):
                     self.station_mode == config['stationMode'].lower() and \
                     self.listen_port == config['listenPort'] and \
                     self.control_port == config['controlPort'] and \
-                    self.enable_log == bool(config['enableLog']):
+                    self.enable_log == (config['enableLog'].lower() == 'true'):
                 # 当基站为 server 时，需要检查 stationIpAddress
                 if (self.station_mode != 'server') or (self.station_ip_address == config['stationIpAddress']):
                     return True
@@ -74,6 +75,7 @@ class RtkThread(threading.Thread):
             rcv_count: 收到的数据包的编号
         """
         self.dispatcher.data_queue.put((data, rcv_count))
+        RtkStatus.update_rcv_time(self.name)
 
     def got_client_cb(self, client_socket, address):
         """接受来自下层客户端的 socket 连接的回调函数
@@ -117,10 +119,10 @@ class RtkThread(threading.Thread):
         # station_mode 指基站的模式，本地的模式与之相反
         if self.station_mode == 'server':
             # 基站为 server, 本地为 client
-            self.station = StationClientThread(self.station_ip_address, self.station_port, self.got_data_cb)
+            self.station = StationClientThread(self.name, self.station_ip_address, self.station_port, self.got_data_cb)
         else:
             # 基站为 client, 本地为 server
-            self.station = StationServerThread(self.station_port, self.got_data_cb)
+            self.station = StationServerThread(self.name, self.station_port, self.got_data_cb)
 
         self.server.log = self.log
         self.controller.log = self.log
@@ -141,6 +143,8 @@ class RtkThread(threading.Thread):
         self.stop_thread('station', self.station)
         self.stop_thread('server', self.server)
         self.stop_thread('dispatcher', self.dispatcher)
+
+        RtkStatus.update_status(self.name, RtkStatus.S_TERMINATED)
 
         self.log.info('rtk thread: bye')
         self.log.close()
