@@ -44,22 +44,26 @@ class SenderThread(threading.Thread):
                 if self.data_queue.qsize() > 10:
                     self.data_queue.empty()
                 # send data
-                data = self.data_queue.get(timeout=1)
                 try:
+                    data = self.data_queue.get(timeout=1)
                     self.client_socket.settimeout(5)
                     self.client_socket.sendall(data)
                     self.send_count += 1
                     self.data_queue.task_done()
+                except queue.Empty:
+                    pass
                 except ValueError as e:
                     self.log.warning('sender thread %d ValueError: %s' % (self.sender_id, e))
                 # rcv useless data
                 try:
                     self.client_socket.settimeout(0.1)
-                    self.client_socket.recv(256)
+                    rcv_buf = self.client_socket.recv(256)
+                    if len(rcv_buf) == 0:
+                        self.log.info('sender thread %d has disconnected.' % self.sender_id)
+                        # 退出
+                        break
                 except socket.timeout:
                     pass
-            except queue.Empty:
-                pass
             except Exception as e:
                 self.log.error('sender thread %d error: %s' % (self.sender_id, e))
                 self.running = False
