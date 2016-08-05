@@ -13,6 +13,7 @@
             "stationMode": "client",
             "listenPort": 11002,
             "controlPort": 11001,
+            "filter": [],
             "enableLog": "true"
         }
     },

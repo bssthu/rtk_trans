@@ -44,6 +44,9 @@ class RtkThread(threading.Thread):
         self.station_port = config['stationPort']
         self.listen_port = config['listenPort']
         self.control_port = config['controlPort']
+        self.rtk_filter = config['filter'] if 'filter' in config.keys() else None
+        if not isinstance(self.rtk_filter, list):
+            self.rtk_filter = None
         self.enable_log = config['enableLog'].lower() == 'true'
         # log init
         self.log = log.Log(name, self.enable_log)
@@ -55,10 +58,12 @@ class RtkThread(threading.Thread):
             config: 配置 dict
         """
         try:
+            rtk_filter = config['filter'] if 'filter' in config.keys() else None
             if self.station_port == config['stationPort'] and \
                     self.station_mode == config['stationMode'].lower() and \
                     self.listen_port == config['listenPort'] and \
                     self.control_port == config['controlPort'] and \
+                    self.rtk_filter == rtk_filter and \
                     self.enable_log == (config['enableLog'].lower() == 'true'):
                 # 当基站为 server 时，需要检查 stationIpAddress
                 if (self.station_mode != 'server') or (self.station_ip_address == config['stationIpAddress']):
@@ -94,7 +99,7 @@ class RtkThread(threading.Thread):
         """
         if command == 'reset server':
             old_dispatcher = self.dispatcher
-            self.dispatcher = DispatcherThread()
+            self.dispatcher = DispatcherThread(self.rtk_filter)
             old_dispatcher.running = False
             self.dispatcher.start()
         elif command == 'list':
@@ -115,7 +120,7 @@ class RtkThread(threading.Thread):
         # threads
         self.server = ServerThread(self.listen_port, self.got_client_cb)
         self.controller = ControlThread(self.control_port, self.got_command_cb)
-        self.dispatcher = DispatcherThread()
+        self.dispatcher = DispatcherThread(self.rtk_filter)
         # station_mode 指基站的模式，本地的模式与之相反
         if self.station_mode == 'server':
             # 基站为 server, 本地为 client
@@ -127,6 +132,7 @@ class RtkThread(threading.Thread):
         self.server.log = self.log
         self.controller.log = self.log
         self.dispatcher.log = self.log
+        self.dispatcher.checker.log = self.log
         self.station.log = self.log
 
         self.server.start()

@@ -8,17 +8,22 @@
 
 import threading
 import queue
-from rtk_trans import log
 from rtk_trans.sender_thread import SenderThread
+from rtk_trans.rtcm_checker import RtcmChecker
 
 
 class DispatcherThread(threading.Thread):
     """分发收到的差分数据的线程"""
 
-    def __init__(self):
-        """构造函数"""
+    def __init__(self, rtk_filter):
+        """构造函数
+
+        Args:
+            rtk_filter: rtcm 报文过滤。None 表示不过滤，[] (empty list) 表示保留所有 rtcm 报文，list 表示保留其中的整数对应的报文
+        """
         super().__init__()
         self.data_queue = queue.Queue()
+        self.checker = RtcmChecker(rtk_filter, self.got_data)
         self.clients = {}
         self.new_client_id = 0
         self.log = None
@@ -33,16 +38,25 @@ class DispatcherThread(threading.Thread):
         while self.running:
             try:
                 data, rcv_count = self.data_queue.get(timeout=1)
-                try:
-                    num_clients = self.send_data(data)
-                    self.data_queue.task_done()
-                    self.log.debug('send %d bytes to %d clients. id: %d' % (len(data), num_clients, rcv_count))
-                except Exception as e:
-                    self.log.error('dispatcher thread error: %s' % e)
+                self.data_queue.task_done()
+                self.checker.add_data(data)
+                self.checker.parse_data()
             except queue.Empty:
                 pass
         self.stop_all_clients()
         self.log.info('dispatcher thread: bye')
+
+    def got_data(self, data):
+        """收到数据时的处理，在 send_data 之前
+
+        Args:
+            data: 收到的数据
+        """
+        try:
+            num_clients = self.send_data(data)
+            self.log.debug('send %d bytes to %d clients.' % (len(data), num_clients))
+        except Exception as e:
+            self.log.error('dispatcher thread error: %s' % e)
 
     def send_data(self, data):
         """分发数据
