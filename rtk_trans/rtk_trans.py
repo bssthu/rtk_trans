@@ -28,7 +28,7 @@ class Rtk:
         rtk_trans.http_thread.log = log.Log('web', True)
 
     def exit_by_signal(self, signum, frame):
-        """响应 SIGINT"""
+        """响应 SIGINT, SIGTERM"""
         self.is_interrupt = True
 
     def wait_for_keyboard(self):
@@ -44,9 +44,10 @@ class Rtk:
                     self.start_threads_from_config()
         except KeyboardInterrupt:
             pass
-        except EOFError:
+        except (EOFError, OSError):
             # no input
             signal.signal(signal.SIGINT, self.exit_by_signal)
+            signal.signal(signal.SIGTERM, self.exit_by_signal)
             while not self.is_interrupt:
                 time.sleep(1)
 
