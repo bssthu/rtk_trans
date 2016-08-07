@@ -23,7 +23,8 @@ class DispatcherThread(threading.Thread):
         """
         super().__init__()
         self.data_queue = queue.Queue()
-        self.checker = RtcmChecker(rtk_filter, self.got_data)
+        self.rtk_filter = rtk_filter
+        self.checker = RtcmChecker(rtk_filter)
         self.clients = {}
         self.new_client_id = 0
         self.log = None
@@ -39,8 +40,11 @@ class DispatcherThread(threading.Thread):
             try:
                 data, rcv_count = self.data_queue.get(timeout=1)
                 self.data_queue.task_done()
-                self.checker.add_data(data)
-                self.checker.parse_data()
+                if self.rtk_filter is not None:
+                    self.checker.add_data(data)
+                    data = self.checker.parse_data()
+                if data is not None:
+                    self.got_data(data)
             except queue.Empty:
                 pass
         self.stop_all_clients()
