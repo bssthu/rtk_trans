@@ -2,7 +2,7 @@
 直接转发
 
 ## Intro
-rtk_trans 通过 socket 连接到一台上层服务器并接收数据。
+每一组 rtk_trans 通过 socket 连接到一台上层服务器并接收、解析数据。
 同时，监听来自若干下层客户端的连接，
 并将数据转发到下层客户端。
 
@@ -20,7 +20,8 @@ python3 rtk.py
 ./start.sh
 ```
 
-按回车查询状态。按'q'+回车或Ctrl+c退出程序。
+按'r'+回车重新加载配置。
+按'q'+回车或Ctrl+c退出程序。
 
 通过 socket 发送命令到 `controlPort` 端口，命令格式为 `*#*#command#*#*`。
 

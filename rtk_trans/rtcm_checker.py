@@ -18,10 +18,10 @@ class RtcmChecker():
         Args:
             acceptable_rtcm_msg_type: 使用的 rtcm 类型
         """
-        if isinstance(acceptable_rtcm_msg_type, list):
-            self.acceptable_rtcm_msg_type = acceptable_rtcm_msg_type
+        if isinstance(acceptable_rtcm_msg_type, list) and (len(acceptable_rtcm_msg_type) > 0):
+            self.is_acceptable_msg_type = lambda x: x in acceptable_rtcm_msg_type
         else:
-            self.acceptable_rtcm_msg_type = None
+            self.is_acceptable_msg_type = lambda x: True
         self.data = []
         self.log = None
 
@@ -50,22 +50,20 @@ class RtcmChecker():
                 # print unknown data
                 # print([hex(x) for x in data[:index]])
                 # print(bytes(data[:index]).decode('utf-8', errors='ignore'))
-                self.remove_from_data(index)
+                self.pop_front(index)
             if len_message > 0:
                 # 删除解析后的数据
                 self.log.debug('pkg size: %d, msg size: %d, msg type: %d' % (len_message, len_message-6, msg_type))
                 # print([hex(x) for x in data[:index + len_message]])
                 # print(bytes(data[:index + len_message]).decode('utf-8', errors='ignore'))
-                parsed_data = self.remove_from_data(len_message)
-                if self.acceptable_rtcm_msg_type is not None \
-                        and parsed_data is not None:
-                    if len(self.acceptable_rtcm_msg_type) == 0 or msg_type in self.acceptable_rtcm_msg_type:
-                        return bytes(parsed_data)
+                parsed_data = self.pop_front(len_message)
+                if self.is_acceptable_msg_type(msg_type):
+                    return bytes(parsed_data)
         except Exception as e:
             self.log.error('checker error when parse msg: %s' % e)
         return None
 
-    def add_data(self, data):
+    def push_back(self, data):
         """加入新收到的数据
 
         Args:
@@ -76,7 +74,7 @@ class RtcmChecker():
         except Exception as e:
             self.log.error('checker error when add: %s' % e)
 
-    def remove_from_data(self, len_to_remove):
+    def pop_front(self, len_to_remove):
         """从 data 开头移除数据
 
         Args:
@@ -87,12 +85,13 @@ class RtcmChecker():
         """
         ret_data = None
         try:
-            if (len_to_remove > 0) and (len_to_remove < len(self.data)):
-                ret_data = self.data[:len_to_remove]
-                self.data = self.data[len_to_remove:]
-            else:
-                ret_data = self.data
-                self.data = []
+            if len_to_remove > 0:
+                if len_to_remove < len(self.data):
+                    ret_data = self.data[:len_to_remove]
+                    self.data = self.data[len_to_remove:]
+                else:
+                    ret_data = self.data[:]
+                    self.data.clear()
         except Exception as e:
             self.log.error('checker error when remove data: %s' % e)
         return ret_data

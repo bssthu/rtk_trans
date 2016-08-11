@@ -46,7 +46,7 @@ def try_parse_from_begin(data):
 
     # 报文长度
     len_rtcm = (data[1] & 0b11) * 0x100 + data[2]
-    len_full_message = len_rtcm + 3 + 3     # 加上引导字、保留字、校验
+    len_full_message = len_rtcm + 3 + 3     # 加上引导字、保留字、校验后的总长度
     if len_rtcm <= 0:
         return -1
     elif len_full_message > len(data):

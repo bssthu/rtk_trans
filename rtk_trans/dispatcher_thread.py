@@ -41,7 +41,7 @@ class DispatcherThread(threading.Thread):
                 data, rcv_count = self.data_queue.get(timeout=1)
                 self.data_queue.task_done()
                 if self.rtk_filter is not None:
-                    self.checker.add_data(data)
+                    self.checker.push_back(data)
                     data = self.checker.parse_data()
                 if data is not None:
                     self.got_data(data)
