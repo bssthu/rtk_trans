@@ -6,25 +6,19 @@
 # Description   :
 #
 
-import threading
 import queue
+import threading
+
 from rtk_trans.sender_thread import SenderThread
-from rtk_trans.rtcm_checker import RtcmChecker
 
 
 class DispatcherThread(threading.Thread):
     """分发收到的差分数据的线程"""
 
-    def __init__(self, rtk_filter):
-        """构造函数
-
-        Args:
-            rtk_filter: rtcm 报文过滤。None 表示不过滤，[] (empty list) 表示保留所有 rtcm 报文，list 表示保留其中的整数对应的报文
-        """
+    def __init__(self):
+        """构造函数"""
         super().__init__()
         self.data_queue = queue.Queue()
-        self.rtk_filter = rtk_filter
-        self.checker = RtcmChecker(rtk_filter)
         self.clients = {}
         self.new_client_id = 0
         self.log = None
@@ -38,13 +32,9 @@ class DispatcherThread(threading.Thread):
         self.log.info('dispatcher thread: start')
         while self.running:
             try:
-                data, rcv_count = self.data_queue.get(timeout=1)
+                data = self.data_queue.get(timeout=1)
                 self.data_queue.task_done()
-                if self.rtk_filter is not None:
-                    self.checker.push_back(data)
-                    data = self.checker.parse_data()
-                if data is not None:
-                    self.got_data(data)
+                self.got_data(data)
             except queue.Empty:
                 pass
         self.stop_all_clients()
@@ -57,7 +47,7 @@ class DispatcherThread(threading.Thread):
             data: 收到的数据
         """
         try:
-            num_clients = self.send_data(data)
+            num_clients = self.send_data(bytes(data))
             self.log.debug('send %d bytes to %d clients.' % (len(data), num_clients))
         except Exception as e:
             self.log.error('dispatcher thread error: %s' % e)
@@ -66,7 +56,7 @@ class DispatcherThread(threading.Thread):
         """分发数据
 
         Args:
-            data: 要分发的数据
+            data: 要分发的数据, bytes
         """
         clients = self.clients.copy()   # 防止因中途被修改而异常
         for _id, sender in clients.items():

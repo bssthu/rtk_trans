@@ -72,14 +72,13 @@ class RtkThread(threading.Thread):
             pass
         return False
 
-    def got_data_cb(self, data, rcv_count):
+    def got_data_cb(self, data):
         """接收到差分数据的回调函数
 
         Args:
             data: 收到的数据包
-            rcv_count: 收到的数据包的编号
         """
-        self.dispatcher.data_queue.put((data, rcv_count))
+        self.dispatcher.data_queue.put(data)
         RtkStatus.update_rcv_time(self.name)
 
     def got_client_cb(self, client_socket, address):
@@ -99,7 +98,7 @@ class RtkThread(threading.Thread):
         """
         if command == 'reset server':
             old_dispatcher = self.dispatcher
-            self.dispatcher = DispatcherThread(self.rtk_filter)
+            self.dispatcher = DispatcherThread()
             old_dispatcher.running = False
             self.dispatcher.start()
         elif command == 'list':
@@ -120,19 +119,19 @@ class RtkThread(threading.Thread):
         # threads
         self.server = ServerThread(self.listen_port, self.got_client_cb)
         self.controller = ControlThread(self.control_port, self.got_command_cb)
-        self.dispatcher = DispatcherThread(self.rtk_filter)
+        self.dispatcher = DispatcherThread()
         # station_mode 指基站的模式，本地的模式与之相反
         if self.station_mode == 'server':
             # 基站为 server, 本地为 client
-            self.station = StationClientThread(self.name, self.station_ip_address, self.station_port, self.got_data_cb)
+            self.station = StationClientThread(self.name, self.station_ip_address, self.station_port,
+                                               self.got_data_cb, self.rtk_filter)
         else:
             # 基站为 client, 本地为 server
-            self.station = StationServerThread(self.name, self.station_port, self.got_data_cb)
+            self.station = StationServerThread(self.name, self.station_port, self.got_data_cb, self.rtk_filter)
 
         self.server.log = self.log
         self.controller.log = self.log
         self.dispatcher.log = self.log
-        self.dispatcher.checker.log = self.log
         self.station.log = self.log
 
         self.server.start()
