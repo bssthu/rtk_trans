@@ -6,6 +6,13 @@
 # Description   :
 #
 
+try:
+    import crcmod
+    crc24q_func = crcmod.mkCrcFun(0b1100001100100110011111011, initCrc=0, rev=False)
+except ImportError:
+    print('Warning: failed to import crcmod.')
+    crc24q_func = None
+
 
 def try_parse(data):
     """从头开始，逐字节尝试解析
@@ -55,8 +62,14 @@ def try_parse_from_begin(data):
     # 校验
     message = data[0:3+len_rtcm]
     crc_from_message = int.from_bytes(data[3+len_rtcm:3+len_rtcm+3], 'big')
-    message_binary = ''.join(['{0:08b}'.format(x) for x in message])
-    crc = int(get_crc(message_binary), 2)   # 计算 CRC
+
+    # 计算 CRC
+    if crc24q_func is not None:
+        crc = crc24q_func(bytes(message))
+    else:
+        message_binary = ''.join(['{0:08b}'.format(x) for x in message])
+        crc = int(get_crc(message_binary), 2)
+
     if crc != crc_from_message:
         return -1
 
