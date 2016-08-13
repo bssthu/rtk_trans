@@ -34,7 +34,9 @@ class RtkThread(threading.Thread):
         self.dispatcher = None
         self.station = None
         self.running = True
-        self.station_mode = config['stationMode'].lower()
+
+        self.config = config
+        self.station_mode = config['stationMode'].lower().strip()
         if self.station_mode != 'server' and self.station_mode != 'client':
             raise Exception('Unrecognized station mode "%s". Should be "server" or "client". %s' % self.station_mode)
         if self.station_mode == 'server':
@@ -50,27 +52,6 @@ class RtkThread(threading.Thread):
         self.enable_log = config['enableLog'].lower() == 'true'
         # log init
         self.log = log.Log(name, self.enable_log)
-
-    def config_equals(self, config):
-        """判断配置是否发生了变化
-
-        Args:
-            config: 配置 dict
-        """
-        try:
-            rtk_filter = config['filter'] if 'filter' in config.keys() else None
-            if self.station_port == config['stationPort'] and \
-                    self.station_mode == config['stationMode'].lower() and \
-                    self.listen_port == config['listenPort'] and \
-                    self.control_port == config['controlPort'] and \
-                    self.rtk_filter == rtk_filter and \
-                    self.enable_log == (config['enableLog'].lower() == 'true'):
-                # 当基站为 server 时，需要检查 stationIpAddress
-                if (self.station_mode != 'server') or (self.station_ip_address == config['stationIpAddress']):
-                    return True
-        except:
-            pass
-        return False
 
     def got_data_cb(self, data):
         """接收到差分数据的回调函数
@@ -123,11 +104,10 @@ class RtkThread(threading.Thread):
         # station_mode 指基站的模式，本地的模式与之相反
         if self.station_mode == 'server':
             # 基站为 server, 本地为 client
-            self.station = StationClientThread(self.name, self.station_ip_address, self.station_port,
-                                               self.got_data_cb, self.rtk_filter)
+            self.station = StationClientThread(self.name, self.config, self.got_data_cb)
         else:
             # 基站为 client, 本地为 server
-            self.station = StationServerThread(self.name, self.station_port, self.got_data_cb, self.rtk_filter)
+            self.station = StationServerThread(self.name, self.config, self.got_data_cb)
 
         self.server.log = self.log
         self.controller.log = self.log

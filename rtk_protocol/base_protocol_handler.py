@@ -6,20 +6,25 @@
 # Description   :
 #
 
+from rtk_protocol.rtcm_checker import RtcmChecker
 from rtk_protocol.base_data_handler import BaseDataHandler
 
 
 class BaseProtocolHandler(BaseDataHandler):
     """协议解析工具"""
 
-    def __init__(self, rtcm_checker):
+    def __init__(self, config):
         """构造函数
 
         Args:
-            rtcm_checker: rtcm 协议检查类
+            config: 配置
         """
         super().__init__()
-        self.rtcm_checker = rtcm_checker
+        self.config = config
+        # rtk_filter 表示 rtcm 报文过滤。
+        # None 表示不过滤，[] (empty list) 表示保留所有 rtcm 报文，list 表示保留其中的整数对应的报文
+        self.rtk_filter = config['filter'] if 'filter' in config.keys() else None
+        self.rtcm_checker = RtcmChecker(self.rtk_filter)
         self.data = []
         self.log = None
 

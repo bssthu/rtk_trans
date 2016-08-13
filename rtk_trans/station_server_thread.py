@@ -16,20 +16,19 @@ from rtk_trans import handshake_timeout_second
 class StationServerThread(threading.Thread):
     """从差分源服务器接收数据的线程，差分源为 tcp client, 本地为 tcp server"""
 
-    def __init__(self, name, port, got_data_cb, rtk_filter):
+    def __init__(self, name, config, got_data_cb):
         """构造函数
 
         Args:
             name: rtk 服务名
-            port: 监听的端口
+            config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
-            rtk_filter: rtcm 报文过滤
         """
         super().__init__()
         self.name = name
-        self.port = port
+        self.config = config
+        self.port = config['stationPort']
         self.got_data_cb = got_data_cb
-        self.rtk_filter = rtk_filter
         self.connection_thread = None
         self.new_connections = []   # 成员为: (连接线程, 连接建立时间)
         self.log = None
@@ -73,7 +72,7 @@ class StationServerThread(threading.Thread):
             conn: client socket
             address: 地址 str
         """
-        new_connection_thread = StationConnectionThread(self.name, conn, address, self.got_data_cb)
+        new_connection_thread = StationConnectionThread(self.name, conn, address, self.config)
         new_connection_thread.log = self.log
         new_connection_thread.start()
         self.new_connections.append((new_connection_thread, time.time()))

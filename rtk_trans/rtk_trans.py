@@ -90,7 +90,7 @@ class Rtk:
                     if name in self.rtk_threads.keys():
                         rtk_thread = self.rtk_threads[name]
                         # 判断配置是否发生改变，如果不变就跳过
-                        if rtk_thread.config_equals(config):
+                        if rtk_thread.config == config:
                             continue
                         self.stop_and_wait_for_thread(name)
                     rtk_thread = RtkThread(name, self.thread_count, config)

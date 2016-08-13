@@ -17,22 +17,20 @@ BUFFER_SIZE = 4096
 class StationClientThread(threading.Thread):
     """从差分源服务器接收数据的线程，差分源为 tcp server, 本地为 tcp client"""
 
-    def __init__(self, name, server_ip, server_port, got_data_cb, rtk_filter):
+    def __init__(self, name, config, got_data_cb):
         """构造函数
 
         Args:
             name: rtk 服务名
-            server_ip: 差分源服务器IP地址
-            server_port: 差分源服务器端口
+            config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
-            rtk_filter: rtcm 报文过滤
         """
         super().__init__()
         self.name = name
-        self.server_ip = server_ip
-        self.server_port = server_port
+        self.config = config
+        self.server_ip = config['stationIpAddress']
+        self.server_port = config['stationPort']
         self.got_data_cb = got_data_cb
-        self.rtk_filter = rtk_filter
         self.connection_thread = None
         self.rcv_count = 0
         self.log = None
@@ -70,7 +68,7 @@ class StationClientThread(threading.Thread):
         """
         # start connection thread
         address = str((self.server_ip, self.server_port))
-        self.connection_thread = StationConnectionThread(self.name, conn, address, self.rtk_filter)
+        self.connection_thread = StationConnectionThread(self.name, conn, address, self.config)
         self.connection_thread.got_data_cb = self.got_data_cb   # 本地为 client, 不验证对方身份，走个流程即可
         self.connection_thread.log = self.log
         self.connection_thread.start()

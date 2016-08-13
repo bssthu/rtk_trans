@@ -8,7 +8,6 @@
 
 import socket
 import threading
-from rtk_protocol.rtcm_checker import RtcmChecker
 from rtk_protocol.base_protocol_handler import BaseProtocolHandler as ProtocolHandler
 from rtk_trans.http_thread import RtkStatus
 
@@ -21,23 +20,23 @@ class StationConnectionThread(threading.Thread):
     该线程同时负责协议解析
     """
 
-    def __init__(self, name, client_socket, address, rtk_filter):
+    def __init__(self, name, client_socket, address, config):
         """构造函数
 
         Args:
             name: rtk 服务名
             client_socket: 与客户端通信的 socket
             address: 客户端地址
-            rtk_filter: rtcm 报文过滤。None 表示不过滤，[] (empty list) 表示保留所有 rtcm 报文，list 表示保留其中的整数对应的报文
+            config: 配置
         """
         super().__init__()
         self.name = name
         self.client_socket = client_socket
         self.address = address
-        rtcm_checker = RtcmChecker(rtk_filter)
-        self.protocol_handler = ProtocolHandler(rtcm_checker=rtcm_checker)
 
-        self.got_data_cb = lambda data: None
+        self.protocol_handler = ProtocolHandler(config)
+
+        self.got_data_cb = lambda data: None    # 连接建立后再设置
         self.rcv_count = 0
         self.handshake_ok = False
         self.log = None
