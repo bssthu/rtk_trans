@@ -6,8 +6,11 @@
 # Description   : socket 转发数据
 # 
 
+import os
 import logging
 from logging import handlers
+
+log_dir = 'logs'
 
 
 class Log:
@@ -29,7 +32,8 @@ class Log:
         # to file
         self.fh = None
         if to_file:
-            fh = logging.handlers.RotatingFileHandler('logs/%s.log' % name, maxBytes=524288000, backupCount=10)
+            log_path = str(os.path.join(log_dir, '%s.log' % name))
+            fh = logging.handlers.RotatingFileHandler(log_path, maxBytes=524288000, backupCount=10)
             fh.setLevel(logging.DEBUG)
             fh.doRollover()
             fh.setFormatter(formatter)

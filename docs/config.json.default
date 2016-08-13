@@ -20,5 +20,6 @@
     "webInterface": {
         "allow": "true",
         "port": 20000
-    }
+    },
+    "logPath": "logs/"
 }

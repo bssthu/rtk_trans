@@ -24,6 +24,9 @@ class Rtk:
         self.web_interface_thread = None
         self.is_interrupt = False
         # log init
+        self.configs = self.load_config()
+        if 'logPath' in self.configs.keys() and os.path.isdir(self.configs['logPath']):
+            log.log_dir = self.configs['logPath']
         self.log = log.Log('rtk', True)
         rtk_trans.http_thread.log = log.Log('web', True)
 
@@ -35,13 +38,21 @@ class Rtk:
         """quit when press q or press ctrl-c, or exception from other threads"""
         try:
             while True:
-                print("enter 'q' to quit, 'r' to reload.")
+                print("enter 'q' to quit, 'r' to reload, 'l' to list ports.")
                 key = input().lower().strip()
                 if key == 'q':
                     break
                 elif key == 'r':
                     self.log.info('main: reload config.')
                     self.start_threads_from_config()
+                elif key == 'l':
+                    try:
+                        print('name, station_port, dispatch_port, control_port')
+                        for name, config in sorted(self.configs['entry'].items()):
+                            print('%s, %d, %d, %d'
+                                  % (name, config['stationPort'], config['listenPort'], config['controlPort']))
+                    except Exception as e:
+                        print(e)
         except KeyboardInterrupt:
             pass
         except (EOFError, OSError):
@@ -54,13 +65,8 @@ class Rtk:
     def start_threads_from_config(self):
         """读取配置文件，启动所有 rtk 线程"""
         # config
-        config_file_name = os.path.join(sys.path[0], 'conf/config.json')
-        try:
-            with open(config_file_name) as config_fp:
-                configs = json.load(config_fp)
-        except Exception as e:
-            self.log.error('main: failed to load config from conf/config.json: %s' % e)
-            return
+        configs = self.load_config()
+        self.configs = configs
 
         # rtk 转发服务
         try:
@@ -164,6 +170,41 @@ class Rtk:
         if isinstance(self.web_interface_thread, HttpThread) and self.web_interface_thread.is_alive():
             self.web_interface_thread.shutdown()
             self.web_interface_thread.join()
+
+    def load_config(self):
+        """载入配置文件
+
+        先读入 conf/config.json 中的配置，再读入 conf/ 中其他 json 文件里的 entry
+        """
+        config_dir = os.path.join(sys.path[0], 'conf')
+        configs = {}
+        # main config
+        config_file_name = os.path.join(config_dir, 'config.json')
+        try:
+            with open(config_file_name) as config_fp:
+                configs = json.load(config_fp)
+        except Exception as e:
+            self.log.error('main: failed to load config from conf/config.json: %s' % e)
+        if 'entry' not in configs.keys():
+            configs['entry'] = {}
+
+        # other entries
+        for dir_path, dir_names, file_names in os.walk(config_dir):
+            for file_name in file_names:
+                if file_name != 'config.json' and file_name.endswith('.json'):
+                    # load sub config
+                    config_file_name = os.path.join(config_dir, file_name)
+                    try:
+                        with open(config_file_name) as config_fp:
+                            sub_configs = json.load(config_fp)
+                        # insert inqto main config
+                        for name, config in sorted(sub_configs['entry'].items()):
+                            if name not in configs['entry'].keys():
+                                configs['entry'][name] = config
+                    except Exception as e:
+                        self.log.error('main: failed to load config from conf/%s: %s' % (file_name, e))
+
+        return configs
 
     def main(self):
         self.log.info('main: start')
