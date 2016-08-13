@@ -8,7 +8,7 @@
 
 import socket
 import threading
-from rtk_protocol.base_protocol_handler import BaseProtocolHandler as ProtocolHandler
+from rtk_protocol.select_protocol import select_protocol
 from rtk_trans.http_thread import RtkStatus
 
 BUFFER_SIZE = 4096
@@ -34,7 +34,7 @@ class StationConnectionThread(threading.Thread):
         self.client_socket = client_socket
         self.address = address
 
-        self.protocol_handler = ProtocolHandler(config)
+        self.protocol_handler = select_protocol(config)
 
         self.got_data_cb = lambda data: None    # 连接建立后再设置
         self.rcv_count = 0

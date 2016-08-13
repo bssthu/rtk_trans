@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 # File          : base_protocol_handler.py
 # Author        : bssthu
-# Project       : rtk_checker
+# Project       : rtk_trans
 # Description   :
 #
 
