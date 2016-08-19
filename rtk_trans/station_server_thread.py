@@ -7,13 +7,13 @@
 # 
 
 import socket
-import threading
 import time
 from rtk_trans.station_connection_thread import StationConnectionThread
+from rtk_trans.station_thread import StationThread
 from rtk_trans import handshake_timeout_second
 
 
-class StationServerThread(threading.Thread):
+class StationServerThread(StationThread):
     """从差分源服务器接收数据的线程，差分源为 tcp client, 本地为 tcp server"""
 
     def __init__(self, name, config, got_data_cb):
@@ -24,15 +24,9 @@ class StationServerThread(threading.Thread):
             config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
         """
-        super().__init__()
-        self.name = name
-        self.config = config
+        super().__init__(name, config, got_data_cb)
         self.port = config['stationPort']
-        self.got_data_cb = got_data_cb
-        self.connection_thread = None
         self.new_connections = []   # 成员为: (连接线程, 连接建立时间)
-        self.log = None
-        self.running = True
 
     def run(self):
         """线程主函数
@@ -57,13 +51,18 @@ class StationServerThread(threading.Thread):
                 self.check_new_connections()
             # clean up
             server.close()
-            if self.connection_thread is not None and self.connection_thread.is_alive():
-                self.connection_thread.running = False
-                self.connection_thread.join()
+            self.disconnect()
             self.log.info('station server thread: bye')
         except Exception as e:
             self.log.error('station server thread error: %s' % e)
             self.running = False
+        self.disconnect()
+
+    def disconnect(self):
+        """关闭连接，准备退出"""
+        super().disconnect()
+        for connection_thread, established_time_sec in self.new_connections[:]:
+            connection_thread.running = False
 
     def got_client(self, conn, address):
         """新客户端连入时的处理

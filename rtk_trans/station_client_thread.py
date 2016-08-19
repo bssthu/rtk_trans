@@ -7,14 +7,14 @@
 # 
 
 import socket
-import threading
 import time
 from rtk_trans.station_connection_thread import StationConnectionThread
+from rtk_trans.station_thread import StationThread
 
 BUFFER_SIZE = 4096
 
 
-class StationClientThread(threading.Thread):
+class StationClientThread(StationThread):
     """从差分源服务器接收数据的线程，差分源为 tcp server, 本地为 tcp client"""
 
     def __init__(self, name, config, got_data_cb):
@@ -25,16 +25,9 @@ class StationClientThread(threading.Thread):
             config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
         """
-        super().__init__()
-        self.name = name
-        self.config = config
+        super().__init__(name, config, got_data_cb)
         self.server_ip = config['stationIpAddress']
         self.server_port = config['stationPort']
-        self.got_data_cb = got_data_cb
-        self.connection_thread = None
-        self.rcv_count = 0
-        self.log = None
-        self.running = True
 
     def run(self):
         """线程主函数
@@ -53,9 +46,7 @@ class StationClientThread(threading.Thread):
                 self.log.error('station client thread error: %s' % e)
                 time.sleep(3)
         # disconnect
-        if self.connection_thread is not None and self.connection_thread.is_alive():
-            self.connection_thread.running = False
-            self.connection_thread.join()
+        self.disconnect()
         self.log.info('station client thread: bye')
 
     def run_receive_data_thread(self, conn):
