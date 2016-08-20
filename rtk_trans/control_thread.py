@@ -33,6 +33,7 @@ class ControlThread(threading.Thread):
         self.buffer = []
         self.is_in_command = False
         self.msg_queue = queue.Queue()
+        self.is_transparency = False   # 从 controller 透传到 station
         self.running = True
         self.log = None
 
@@ -75,6 +76,7 @@ class ControlThread(threading.Thread):
             self.disconnect_client()
             self.client = conn
             self.client.settimeout(3)
+            self.is_transparency = False   # 新连接不透传
             self.log.info('new control client from: %s' % str(address))
         except socket.timeout:
             pass
@@ -99,6 +101,13 @@ class ControlThread(threading.Thread):
         首先寻找指令起始标记，找不到就从 buffer 头删除一个字节，再继续寻找。
         然后调用 resolve_command_from_begin() 从 buffer 的开头开始解析，直到遇到结尾标记为止。
         """
+        if self.is_transparency and len(self.buffer) > 0:
+            # 透传模式
+            command = b'send:' + bytes(self.buffer[:])
+            self.buffer.clear()
+            self.log.info('control command: %s' % command)
+            self.got_command_cb(command)
+
         while len(self.buffer) >= 4:
             # 解析指令
             try:
@@ -106,9 +115,14 @@ class ControlThread(threading.Thread):
                     command = self.resolve_command_from_begin()
                     if self.is_in_command:      # 没有遇到结尾，收到的指令还不完整
                         break
-                    elif isinstance(command, str):      # 收到了指令
+                    elif command is not None:   # 收到了指令
                         self.log.info('control command: %s' % command)
                         self.got_command_cb(command)
+                        if command == b'%MODE1':
+                            # 透传模式
+                            # TODO: 身份验证
+                            self.is_transparency = True
+                            break
                 elif self.buffer[:4] == CMD_BEGIN:  # begin of command
                     self.is_in_command = True
                 else:
@@ -123,7 +137,7 @@ class ControlThread(threading.Thread):
                 del self.buffer[:i - 4]
                 return self.resolve_command_from_begin()
             elif i >= 8 and self.buffer[i - 4:i] == CMD_END:   # end of command
-                command = ''.join([chr(c) for c in self.buffer[4:i - 4]])
+                command = bytes(self.buffer[4:i - 4])
                 del self.buffer[:i]
                 self.is_in_command = False
                 return command

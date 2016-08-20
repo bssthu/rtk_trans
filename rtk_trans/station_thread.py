@@ -28,6 +28,12 @@ class StationThread(threading.Thread):
         self.log = None
         self.running = True
 
+    def send(self, data):
+        """向差分源发送数据"""
+        connection_thread = self.connection_thread
+        if connection_thread is not None:
+            connection_thread.add_data_to_send_queue(data)
+
     def disconnect(self):
         """关闭连接，准备退出"""
         if self.connection_thread is not None and self.connection_thread.is_alive():

@@ -52,8 +52,6 @@ class SenderThread(threading.Thread):
                     self.data_queue.task_done()
                 except queue.Empty:
                     pass
-                except ValueError as e:
-                    self.log.warning('sender thread %d ValueError: %s' % (self.sender_id, e))
                 # rcv useless data
                 try:
                     self.client_socket.settimeout(0.1)

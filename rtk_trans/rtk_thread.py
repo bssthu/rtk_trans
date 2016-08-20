@@ -77,15 +77,17 @@ class RtkThread(threading.Thread):
         Args:
             command: 待处理的命令
         """
-        if command == 'reset server':
+        if command == b'reset server':
             old_dispatcher = self.dispatcher
             self.dispatcher = DispatcherThread()
             old_dispatcher.running = False
             self.dispatcher.start()
-        elif command == 'list':
+        elif command == b'list':
             self.controller.msg_queue.put('client count: %d\r\n' % len(self.dispatcher.clients))
             for _id, sender in self.dispatcher.clients.copy().items():
                 self.controller.msg_queue.put('%d: %s, %d\r\n' % (sender.sender_id, sender.address, sender.send_count))
+        elif command.startswith(b'send:') and len(command) > len('send:'):
+            self.station.send(command[len('send:'):])
 
     def stop_thread(self, name, thread_to_stop):
         try:

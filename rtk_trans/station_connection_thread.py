@@ -8,6 +8,7 @@
 
 import socket
 import threading
+import queue
 from rtk_protocol.select_protocol import select_protocol
 from rtk_trans.http_thread import RtkStatus
 
@@ -34,6 +35,7 @@ class StationConnectionThread(threading.Thread):
         self.client_socket = client_socket
         self.address = address
 
+        self.data_queue = queue.Queue()
         self.protocol_handler = select_protocol(config)
 
         self.got_data_cb = lambda data: None    # 连接建立后再设置
@@ -54,18 +56,20 @@ class StationConnectionThread(threading.Thread):
         RtkStatus.update_status(self.name, RtkStatus.S_CONNECTED)
 
         try:
-            self.receive_data()
+            self.send_and_receive_data()
         except Exception as e:
             self.log.error('station connection thread error: %s' % e)
         RtkStatus.update_status(self.name, RtkStatus.S_DISCONNECTED)
         self.log.info('station connection thread: bye')
 
-    def receive_data(self):
-        """循环接收数据"""
+    def send_and_receive_data(self):
+        """循环发送、接收数据"""
         timeout_count = 0
         while self.running:
+            # 发送数据
+            self.send_data_from_queue()
+            # 接收数据
             try:
-                # 接收数据
                 data = self.client_socket.recv(BUFFER_SIZE)
                 # 连接失败的处理
                 if len(data) == 0:
@@ -82,6 +86,18 @@ class StationConnectionThread(threading.Thread):
                     self.log.info('station connection thread: timeout')
         self.disconnect()
 
+    def send_data_from_queue(self):
+        """发送队列里的所有数据"""
+        data = []
+        try:
+            while True:
+                data = self.data_queue.get(timeout=0.1)
+                self.data_queue.task_done()
+        except queue.Empty:
+            pass
+        if len(data) > 0:
+            self.client_socket.sendall(data)
+
     def parse_data(self, data):
         """收到数据后的处理"""
         self.rcv_count += 1
@@ -97,6 +113,10 @@ class StationConnectionThread(threading.Thread):
             if data is None or len(data) <= 0:
                 break
             self.got_data_cb(data)
+
+    def add_data_to_send_queue(self, data):
+        """向发送队列加入数据"""
+        self.data_queue.put(data)
 
     def disconnect(self):
         """断开连接"""
