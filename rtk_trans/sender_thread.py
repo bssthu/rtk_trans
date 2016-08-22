@@ -41,8 +41,8 @@ class SenderThread(threading.Thread):
         while self.running:
             try:
                 # ignore old data
-                if self.data_queue.qsize() > 10:
-                    self.data_queue.empty()
+                while self.data_queue.qsize() > 10:
+                    self.data_queue.get(block=False)
                 # send data
                 try:
                     data = self.data_queue.get(timeout=1)
