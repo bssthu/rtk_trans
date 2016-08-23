@@ -11,9 +11,9 @@ import sys
 import json
 import time
 import signal
+import multiprocessing
 from rtk_trans import log
 from rtk_trans.rtk_group import RtkGroup
-import rtk_trans.http_thread
 from rtk_trans.http_thread import HttpThread
 
 
@@ -27,7 +27,8 @@ class Rtk:
         self.configs = self.load_config()
         if 'logPath' in self.configs.keys() and os.path.isdir(self.configs['logPath']):
             log.log_dir = self.configs['logPath']
-        log.init('rtk', True)
+        multiprocessing.current_process().name = 'rtk'
+        log.init(multiprocessing.current_process().name, True)
 
     def exit_by_signal(self, signum, frame):
         """响应 SIGINT, SIGTERM"""
@@ -223,4 +224,4 @@ class Rtk:
         self.stop_and_wait_for_web_interface()
 
         log.info('main: bye')
-        log.close()
+        log.close_all()

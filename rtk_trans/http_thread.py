@@ -102,10 +102,7 @@ class RtkStatus:
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
-    """支持多线程"""
-    def server_bind(self):
-        self.allow_reuse_address = True
-        super().server_bind()
+    pass
 
 
 class RequestHandler(BaseHTTPRequestHandler):

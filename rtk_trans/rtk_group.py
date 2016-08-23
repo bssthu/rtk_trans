@@ -31,7 +31,7 @@ class RtkGroup(threading.Thread):
     def run(self):
         queue_in = Queue()
         queue_out = Queue()
-        p = Process(target=process_main, args=(queue_in, queue_out, self.name, self.config))
+        p = Process(name=self.name, target=process_main, args=(queue_in, queue_out, self.name, self.config))
         p.start()
 
         # wait
@@ -64,4 +64,4 @@ def process_main(queue_in, queue_out, name, config):
     rtk_thread.running = False
     rtk_thread.join()
 
-    log.close()
+    log.close(name)

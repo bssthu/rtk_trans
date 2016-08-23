@@ -7,11 +7,11 @@
 # 
 
 import os
-import logging
+import multiprocessing, logging
 from logging import handlers
 
 log_dir = 'logs'
-logger = None
+loggers = {}
 
 
 class Log:
@@ -61,37 +61,50 @@ class Log:
 
 
 def init(name, to_file=True):
-    global logger
-    if logger is None:
+    """实例化一个日志工具"""
+    global loggers
+    if name not in loggers.keys():
         logger = Log(name, to_file)
+        loggers[name] = logger
 
 
-def close():
-    global logger
-    if logger is not None:
-        logger.close()
-        logger = None
+def close(name):
+    """关闭一个日志工具"""
+    global loggers
+    if name in loggers.keys():
+        loggers[name].close()
+        del loggers[name]
+
+
+def close_all():
+    """关闭所有日志工具"""
+    global loggers
+    for name in loggers.copy().keys():
+        close(name)
 
 
 def debug(msg, *args, **kwargs):
-    logger.logger.debug(msg, *args, **kwargs)
+    log(logging.DEBUG, msg, *args, **kwargs)
 
 
 def info(msg, *args, **kwargs):
-    logger.logger.info(msg, *args, **kwargs)
+    log(logging.INFO, msg, *args, **kwargs)
 
 
 def warning(msg, *args, **kwargs):
-    logger.logger.warning(msg, *args, **kwargs)
+    log(logging.WARNING, msg, *args, **kwargs)
 
 
 def error(msg, *args, **kwargs):
-    logger.logger.error(msg, *args, **kwargs)
+    log(logging.ERROR, msg, *args, **kwargs)
 
 
 def critical(msg, *args, **kwargs):
-    logger.logger.critical(msg, *args, **kwargs)
+    log(logging.CRITICAL, msg, *args, **kwargs)
 
 
 def log(lvl, msg, *args, **kwargs):
-    logger.logger.log(lvl, msg, *args, **kwargs)
+    name = multiprocessing.current_process().name
+    global loggers
+    if name in loggers.keys():
+        loggers[name].logger.log(lvl, msg, *args, **kwargs)
