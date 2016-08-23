@@ -49,10 +49,11 @@ class Rtk:
                     try:
                         print('name, station_port, dispatch_port, control_port')
                         for name, config in sorted(self.configs['entry'].items()):
-                            print('%s, %d, %d, %d'
-                                  % (name, config['stationPort'], config['listenPort'], config['controlPort']))
+                            control_port = str(config['controlPort']) if 'controlPort' in config else None
+                            print('%s, %d, %d, %s'
+                                  % (name, config['stationPort'], config['listenPort'], control_port))
                     except Exception as e:
-                        print(e)
+                        print('Error when list config: %s' % e)
         except KeyboardInterrupt:
             pass
         except (EOFError, OSError):
