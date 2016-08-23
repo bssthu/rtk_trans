@@ -12,7 +12,7 @@ import json
 import time
 import signal
 from rtk_trans import log
-from rtk_trans.rtk_thread import RtkThread
+from rtk_trans.rtk_group import RtkGroup
 import rtk_trans.http_thread
 from rtk_trans.http_thread import HttpThread
 
@@ -99,7 +99,7 @@ class Rtk:
                         if rtk_thread.config == config:
                             continue
                         self.stop_and_wait_for_thread(name)
-                    rtk_thread = RtkThread(name, self.thread_count, config)
+                    rtk_thread = RtkGroup(name, self.thread_count, config)
                     self.thread_count += 1
                     rtk_thread.start()
                     self.rtk_threads[name] = rtk_thread
@@ -117,7 +117,7 @@ class Rtk:
         try:
             if name in self.rtk_threads.keys():
                 rtk_thread = self.rtk_threads[name]
-                if isinstance(rtk_thread, RtkThread) and rtk_thread.is_alive():
+                if isinstance(rtk_thread, RtkGroup) and rtk_thread.is_alive():
                     rtk_thread.running = False
                     self.log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
         except Exception as e:
@@ -134,7 +134,7 @@ class Rtk:
         try:
             if name in self.rtk_threads.keys():
                 rtk_thread = self.rtk_threads[name]
-                if isinstance(rtk_thread, RtkThread) and rtk_thread.is_alive():
+                if isinstance(rtk_thread, RtkGroup) and rtk_thread.is_alive():
                     # wait
                     rtk_thread.join()
                 self.log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))

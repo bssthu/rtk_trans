@@ -10,7 +10,6 @@ import threading
 import time
 from rtk_trans import log
 from rtk_trans.control_thread import ControlThread
-from rtk_trans.dispatcher import Dispatcher
 from rtk_trans.server_thread import ServerThread
 from rtk_trans.station_client_thread import StationClientThread
 from rtk_trans.station_server_thread import StationServerThread
@@ -18,17 +17,15 @@ from rtk_trans.http_thread import RtkStatus
 
 
 class RtkThread(threading.Thread):
-    def __init__(self, name, thread_id, config):
+    def __init__(self, name, config):
         """初始化
 
         Args:
             name: rtk 线程名
-            thread_id: 线程 id
             config: 配置 dict
         """
         super().__init__()
         self.name = name
-        self.thread_id = thread_id
         self.server = None
         self.controller = None
         self.station = None
