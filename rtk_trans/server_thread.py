@@ -8,21 +8,21 @@
 
 import socket
 import threading
+from rtk_trans.dispatcher import Dispatcher
 
 
 class ServerThread(threading.Thread):
     """监听来自客户端的连接的线程"""
 
-    def __init__(self, port, got_client_cb):
+    def __init__(self, port):
         """构造函数
 
         Args:
             port: 监听的端口
-            got_client_cb: 接受到客户端连接后的回调函数
         """
         super().__init__()
         self.port = port
-        self.got_client_cb = got_client_cb
+        self.dispatcher = Dispatcher()
         self.log = None
         self.running = True
 
@@ -31,22 +31,27 @@ class ServerThread(threading.Thread):
 
         循环运行，接受新的客户端的连接。
         """
+        self.dispatcher.log = self.log
         self.log.info('server thread: start, port: %d' % self.port)
         try:
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server.bind(('0.0.0.0', self.port))
-            server.listen(1)
-            server.settimeout(3)    # timeout: 3s
+            server.listen(100)      # 并发
+            server.settimeout(1)    # timeout: 1s
             while self.running:
+                # 接受连接
                 try:
                     conn, address = server.accept()
                     conn.settimeout(3)
-                    self.got_client_cb(conn, address)
+                    self.dispatcher.add_client(conn, address)
                     self.log.debug('new client from: %s' % str(address))
                 except socket.timeout:
                     pass
+                # 分发数据
+                self.dispatcher.dispatch()
             server.close()
+            self.dispatcher.close_all_clients()
             self.log.info('server thread: bye')
         except Exception as e:
             self.log.error('server thread error: %s' % e)

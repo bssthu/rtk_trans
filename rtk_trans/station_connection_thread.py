@@ -88,10 +88,10 @@ class StationConnectionThread(threading.Thread):
 
     def send_data_from_queue(self):
         """发送队列里的所有数据"""
-        data = []
+        data = b''
         try:
-            while True:
-                data = self.data_queue.get(timeout=0.1)
+            while self.data_queue.qsize() > 0:
+                data += self.data_queue.get(block=False)
                 self.data_queue.task_done()
         except queue.Empty:
             pass
@@ -115,7 +115,11 @@ class StationConnectionThread(threading.Thread):
             self.got_data_cb(data)
 
     def add_data_to_send_queue(self, data):
-        """向发送队列加入数据"""
+        """向发送队列加入数据
+
+        Args:
+            <bytes> data: 要发送的数据
+        """
         self.data_queue.put(data)
 
     def disconnect(self):

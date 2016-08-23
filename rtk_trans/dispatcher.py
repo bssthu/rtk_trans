@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-# File          : dispatcher_thread.py
+# File          : dispatcher.py
 # Author        : bssthu
 # Project       : rtk_trans
 # Description   :
 #
 
 import queue
-import threading
-
 from rtk_trans.sender_thread import SenderThread
 
 
-class DispatcherThread(threading.Thread):
-    """分发收到的差分数据的线程"""
+class Dispatcher:
+    """向客户端分发收到的差分数据的工具"""
 
     def __init__(self):
         """构造函数"""
@@ -24,39 +22,27 @@ class DispatcherThread(threading.Thread):
         self.log = None
         self.running = True
 
-    def run(self):
-        """线程主函数
-
-        循环运行，不断把 self.data_queue 中的数据包分发给各 SenderThread
-        """
-        self.log.info('dispatcher thread: start')
-        while self.running:
-            try:
-                data = self.data_queue.get(timeout=1)
-                self.data_queue.task_done()
-                self.got_data(data)
-            except queue.Empty:
-                pass
-        self.stop_all_clients()
-        self.log.info('dispatcher thread: bye')
-
-    def got_data(self, data):
-        """收到数据时的处理，在 send_data 之前
-
-        Args:
-            data: 收到的数据
-        """
+    def dispatch(self):
+        """每次执行时，把 self.data_queue 中的所有数据包合并，再分发给各 SenderThread"""
+        data = b''
         try:
-            num_clients = self.send_data(bytes(data))
-            self.log.debug('send %d bytes to %d clients.' % (len(data), num_clients))
-        except Exception as e:
-            self.log.error('dispatcher thread error: %s' % e)
+            while self.data_queue.qsize() > 0:
+                data += self.data_queue.get(block=False)
+                self.data_queue.task_done()
+        except queue.Empty:
+            pass
+        if len(data) > 0:
+            num_of_sender = self.send_data(bytes(data))
+            self.log.debug('send %d bytes to %d clients.' % (len(data), num_of_sender))
 
     def send_data(self, data):
         """分发数据
 
         Args:
             data: 要分发的数据, bytes
+
+        Returns:
+            客户端数量
         """
         clients = self.clients.copy()   # 防止因中途被修改而异常
         for _id, sender in clients.items():
@@ -81,7 +67,7 @@ class DispatcherThread(threading.Thread):
         self.new_client_id += 1
         sender.start()
 
-    def stop_all_clients(self):
+    def close_all_clients(self):
         """关闭所有与客户端的连接"""
         for _id, sender in self.clients.items():
             sender.running = False

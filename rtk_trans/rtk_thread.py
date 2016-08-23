@@ -10,7 +10,7 @@ import threading
 import time
 from rtk_trans import log
 from rtk_trans.control_thread import ControlThread
-from rtk_trans.dispatcher_thread import DispatcherThread
+from rtk_trans.dispatcher import Dispatcher
 from rtk_trans.server_thread import ServerThread
 from rtk_trans.station_client_thread import StationClientThread
 from rtk_trans.station_server_thread import StationServerThread
@@ -31,7 +31,6 @@ class RtkThread(threading.Thread):
         self.thread_id = thread_id
         self.server = None
         self.controller = None
-        self.dispatcher = None
         self.station = None
         self.running = True
 
@@ -57,19 +56,10 @@ class RtkThread(threading.Thread):
         """接收到差分数据的回调函数
 
         Args:
-            data: 收到的数据包
+            <bytes> data: 收到的数据包
         """
-        self.dispatcher.data_queue.put(data)
+        self.server.dispatcher.data_queue.put(data)
         RtkStatus.update_rcv_time(self.name)
-
-    def got_client_cb(self, client_socket, address):
-        """接受来自下层客户端的 socket 连接的回调函数
-
-        Args:
-            client_socket: 与客户端连接的 socket
-            address: 客户端地址
-        """
-        self.dispatcher.add_client(client_socket, address)
 
     def got_command_cb(self, command):
         """接收到来自控制端口的指令的回调函数
@@ -78,13 +68,14 @@ class RtkThread(threading.Thread):
             command: 待处理的命令
         """
         if command == b'reset server':
-            old_dispatcher = self.dispatcher
-            self.dispatcher = DispatcherThread()
-            old_dispatcher.running = False
-            self.dispatcher.start()
+            old_server = self.server
+            self.server = ServerThread(self.listen_port)
+            self.server.log = self.log
+            old_server.running = False
+            self.server.start()
         elif command == b'list':
-            self.controller.msg_queue.put('client count: %d\r\n' % len(self.dispatcher.clients))
-            for _id, sender in self.dispatcher.clients.copy().items():
+            self.controller.msg_queue.put('client count: %d\r\n' % len(self.server.dispatcher.clients))
+            for _id, sender in self.server.dispatcher.clients.copy().items():
                 self.controller.msg_queue.put('%d: %s, %d\r\n' % (sender.sender_id, sender.address, sender.send_count))
         elif command.startswith(b'send:') and len(command) > len('send:'):
             self.station.send(command[len('send:'):])
@@ -100,9 +91,8 @@ class RtkThread(threading.Thread):
         self.log.info('rtk thread: start')
 
         # threads
-        self.server = ServerThread(self.listen_port, self.got_client_cb)
+        self.server = ServerThread(self.listen_port)
         self.controller = ControlThread(self.control_port, self.got_command_cb)
-        self.dispatcher = DispatcherThread()
         # station_mode 指基站的模式，本地的模式与之相反
         if self.station_mode == 'server':
             # 基站为 server, 本地为 client
@@ -113,12 +103,10 @@ class RtkThread(threading.Thread):
 
         self.server.log = self.log
         self.controller.log = self.log
-        self.dispatcher.log = self.log
         self.station.log = self.log
 
         self.server.start()
         self.controller.start()
-        self.dispatcher.start()
         self.station.start()
 
         # wait
@@ -129,7 +117,6 @@ class RtkThread(threading.Thread):
         self.stop_thread('controller', self.controller)
         self.stop_thread('station', self.station)
         self.stop_thread('server', self.server)
-        self.stop_thread('dispatcher', self.dispatcher)
 
         RtkStatus.update_status(self.name, RtkStatus.S_TERMINATED)
 

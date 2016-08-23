@@ -33,7 +33,7 @@ class RtcmChecker(BaseDataHandler):
         """解析数据
 
         Returns:
-            解析了的完整报文
+            <bytes> 解析了的完整报文
         """
 
         if len(self.data) <= 0:
@@ -43,7 +43,7 @@ class RtcmChecker(BaseDataHandler):
         if self.is_acceptable_msg_type is None:
             # 如果不用解析
             self.data.clear()
-            return data
+            return bytes(data)
 
         try:
             # 解析

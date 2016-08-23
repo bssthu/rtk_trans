@@ -30,7 +30,7 @@ class BaseDataHandler:
             len_to_remove: 要删除的数据长度
 
         Returns:
-            ret_data: 被删除的数据
+            <bytes> ret_data: 被删除的数据
         """
         ret_data = None
         try:
@@ -43,4 +43,4 @@ class BaseDataHandler:
                     self.data.clear()
         except Exception as e:
             self.log.error('checker error when remove data: %s' % e)
-        return ret_data
+        return bytes(ret_data)
