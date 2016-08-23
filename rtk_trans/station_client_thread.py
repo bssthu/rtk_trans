@@ -10,8 +10,7 @@ import socket
 import time
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
-
-BUFFER_SIZE = 4096
+from rtk_trans import log
 
 
 class StationClientThread(StationThread):
@@ -34,20 +33,20 @@ class StationClientThread(StationThread):
 
         循环运行，建立连接、接收数据，并在连接出错时重连。
         """
-        self.log.info('station client thread: start')
+        log.info('station client thread: start')
         while self.running:
             try:
                 # 建立连接
                 conn = self.connect()
-                self.log.info('station client thread: connected')
+                log.info('station client thread: connected')
                 # 开启数据接收线程
                 self.run_receive_data_thread(conn)
             except Exception as e:
-                self.log.error('station client thread error: %s' % e)
+                log.error('station client thread error: %s' % e)
                 time.sleep(3)
         # disconnect
         self.disconnect()
-        self.log.info('station client thread: bye')
+        log.info('station client thread: bye')
 
     def run_receive_data_thread(self, conn):
         """循环接收数据
@@ -61,7 +60,6 @@ class StationClientThread(StationThread):
         address = str((self.server_ip, self.server_port))
         self.connection_thread = StationConnectionThread(self.name, conn, address, self.config)
         self.connection_thread.got_data_cb = self.got_data_cb   # 本地为 client, 不验证对方身份，走个流程即可
-        self.connection_thread.log = self.log
         self.connection_thread.start()
         # wait for connection thread
         while self.running and self.connection_thread.is_alive():
@@ -83,5 +81,5 @@ class StationClientThread(StationThread):
         try:
             client.close()
         except:
-            self.log.error('station client exception when close.')
+            log.error('station client exception when close.')
         return self.connect()

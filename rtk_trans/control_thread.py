@@ -35,7 +35,6 @@ class ControlThread(threading.Thread):
         self.msg_queue = queue.Queue()
         self.is_transparency = False   # 从 controller 透传到 station
         self.running = True
-        self.log = None
 
     def run(self):
         """线程主函数
@@ -45,7 +44,7 @@ class ControlThread(threading.Thread):
         if self.port is None:
             return
 
-        self.log.info('control thread: start, port: %d' % self.port)
+        log.info('control thread: start, port: %d' % self.port)
         try:
             # 开始监听
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,9 +60,9 @@ class ControlThread(threading.Thread):
                 self.send_message()
             server.close()
             self.disconnect_client()
-            self.log.info('control thread: bye')
+            log.info('control thread: bye')
         except Exception as e:
-            self.log.error('control thread error: %s' % e)
+            log.error('control thread error: %s' % e)
             self.running = False
 
     def accept_client(self, server):
@@ -80,7 +79,7 @@ class ControlThread(threading.Thread):
             self.client = conn
             self.client.settimeout(3)
             self.is_transparency = False   # 新连接不透传
-            self.log.info('new control client from: %s' % str(address))
+            log.info('new control client from: %s' % str(address))
         except socket.timeout:
             pass
 
@@ -95,7 +94,7 @@ class ControlThread(threading.Thread):
             except socket.timeout:      # 允许超时
                 pass
             except Exception as e:
-                self.log.error('control client error: %s' % e)
+                log.error('control client error: %s' % e)
                 self.disconnect_client()
 
     def resolve_command(self):
@@ -108,7 +107,7 @@ class ControlThread(threading.Thread):
             # 透传模式
             command = b'send:' + bytes(self.buffer[:])
             self.buffer.clear()
-            self.log.info('control command: %s' % command)
+            log.info('control command: %s' % command)
             self.got_command_cb(command)
 
         while len(self.buffer) >= 4:
@@ -119,11 +118,10 @@ class ControlThread(threading.Thread):
                     if self.is_in_command:      # 没有遇到结尾，收到的指令还不完整
                         break
                     elif command is not None:   # 收到了指令
-                        self.log.info('control command: %s' % command)
+                        log.info('control command: %s' % command)
                         self.got_command_cb(command)
                         if command == b'%MODE1':
                             # 透传模式
-                            # TODO: 身份验证
                             self.is_transparency = True
                             break
                 elif self.buffer[:4] == CMD_BEGIN:  # begin of command
@@ -131,7 +129,7 @@ class ControlThread(threading.Thread):
                 else:
                     del self.buffer[0]      # 出队一个字节
             except Exception as e:
-                self.log.warning('control thread resolve: %s' % e)
+                log.warning('control thread resolve: %s' % e)
 
     def resolve_command_from_begin(self):
         """从 buffer 的起点开始解析"""
@@ -155,7 +153,7 @@ class ControlThread(threading.Thread):
         if len(data) == 0:
             raise RuntimeError('socket connection broken')
         self.buffer.extend(data)
-        self.log.debug('control rcv %d bytes.' % len(data))
+        log.debug('control rcv %d bytes.' % len(data))
 
     def send_message(self):
         """向控制端口发送数据
@@ -188,7 +186,7 @@ class ControlThread(threading.Thread):
             except socket.error:
                 pass
             except Exception as e:
-                self.log.error('control client exception when close: %s' % e)
+                log.error('control client exception when close: %s' % e)
         # clean up
         self.client = None
         self.buffer.clear()

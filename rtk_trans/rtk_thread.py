@@ -45,9 +45,6 @@ class RtkThread(threading.Thread):
         self.rtk_filter = config['filter'] if 'filter' in config.keys() else None
         if not isinstance(self.rtk_filter, list):
             self.rtk_filter = None
-        self.enable_log = config['enableLog'].lower() == 'true'
-        # log init
-        self.log = log.Log(name, self.enable_log)
 
     def got_data(self, data):
         """接收到差分数据的回调函数
@@ -67,7 +64,6 @@ class RtkThread(threading.Thread):
         if command == b'reset server':
             old_server = self.server
             self.server = ServerThread(self.listen_port)
-            self.server.log = self.log
             old_server.running = False
             self.server.start()
         elif command == b'list':
@@ -82,10 +78,10 @@ class RtkThread(threading.Thread):
             thread_to_stop.running = False
             thread_to_stop.join()
         except Exception as e:
-            self.log.error('rtk thread: failed to stop thread %s: %s' % (name, e))
+            log.error('rtk thread: failed to stop thread %s: %s' % (name, e))
 
     def run(self):
-        self.log.info('rtk thread: start')
+        log.info('rtk thread: start')
 
         # threads
         self.server = ServerThread(self.listen_port)
@@ -97,10 +93,6 @@ class RtkThread(threading.Thread):
         else:
             # 基站为 client, 本地为 server
             self.station = StationServerThread(self.name, self.config, self.got_data)
-
-        self.server.log = self.log
-        self.controller.log = self.log
-        self.station.log = self.log
 
         self.server.start()
         self.controller.start()
@@ -115,5 +107,4 @@ class RtkThread(threading.Thread):
         self.stop_thread('station', self.station)
         self.stop_thread('server', self.server)
 
-        self.log.info('rtk thread: bye')
-        self.log.close()
+        log.info('rtk thread: bye')

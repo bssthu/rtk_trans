@@ -9,6 +9,7 @@
 import socket
 import threading
 import queue
+from rtk_trans import log
 
 
 class SenderThread(threading.Thread):
@@ -28,7 +29,6 @@ class SenderThread(threading.Thread):
         self.sender_id = _id
         self.data_queue = queue.Queue()
         self.send_count = 0
-        self.log = None
         self.running = True
 
     def run(self):
@@ -37,7 +37,7 @@ class SenderThread(threading.Thread):
         循环运行，接收来自客户端的数据并丢弃，向客户端发送 data_queue 中的数据包。
         当 data_queue 过长时，丢弃旧的数据包。
         """
-        self.log.info('sender thread %d: start, %s' % (self.sender_id, self.address))
+        log.info('sender thread %d: start, %s' % (self.sender_id, self.address))
         while self.running:
             try:
                 # ignore old data
@@ -57,16 +57,16 @@ class SenderThread(threading.Thread):
                     self.client_socket.settimeout(0.1)
                     rcv_buf = self.client_socket.recv(256)
                     if len(rcv_buf) == 0:
-                        self.log.info('sender thread %d has disconnected.' % self.sender_id)
+                        log.info('sender thread %d has disconnected.' % self.sender_id)
                         # 退出
                         break
                 except socket.timeout:
                     pass
             except Exception as e:
-                self.log.error('sender thread %d error: %s' % (self.sender_id, e))
+                log.error('sender thread %d error: %s' % (self.sender_id, e))
                 self.running = False
         self.disconnect()
-        self.log.info('sender thread %d: bye' % self.sender_id)
+        log.info('sender thread %d: bye' % self.sender_id)
 
     def disconnect(self):
         """断开连接"""
@@ -75,4 +75,4 @@ class SenderThread(threading.Thread):
         except socket.error:
             pass
         except Exception as e:
-            self.log.error('sender thread %d exception when close: %s' % (self.sender_id, e))
+            log.error('sender thread %d exception when close: %s' % (self.sender_id, e))

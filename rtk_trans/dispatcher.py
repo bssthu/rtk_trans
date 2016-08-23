@@ -8,6 +8,7 @@
 
 import queue
 from rtk_trans.sender_thread import SenderThread
+from rtk_trans import log
 
 
 class Dispatcher:
@@ -19,7 +20,6 @@ class Dispatcher:
         self.data_queue = queue.Queue()
         self.clients = {}
         self.new_client_id = 0
-        self.log = None
         self.running = True
 
     def dispatch(self):
@@ -33,7 +33,7 @@ class Dispatcher:
             pass
         if len(data) > 0:
             num_of_sender = self.send_data(bytes(data))
-            self.log.debug('send %d bytes to %d clients.' % (len(data), num_of_sender))
+            log.debug('send %d bytes to %d clients.' % (len(data), num_of_sender))
 
     def send_data(self, data):
         """分发数据
@@ -62,7 +62,6 @@ class Dispatcher:
             address: 客户端地址
         """
         sender = SenderThread(client_socket, address, self.new_client_id)
-        sender.log = self.log
         self.clients[self.new_client_id] = sender
         self.new_client_id += 1
         sender.start()

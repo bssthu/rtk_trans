@@ -8,6 +8,7 @@
 
 from rtk_protocol.rtcm_checker import RtcmChecker
 from rtk_protocol.base_data_handler import BaseDataHandler
+from rtk_trans import log
 
 
 class BaseProtocolHandler(BaseDataHandler):
@@ -26,7 +27,6 @@ class BaseProtocolHandler(BaseDataHandler):
         self.rtk_filter = config['filter'] if 'filter' in config.keys() else None
         self.rtcm_checker = RtcmChecker(self.rtk_filter)
         self.data = []
-        self.log = None
 
     def handshake(self):
         """重载方法实现握手"""
@@ -47,5 +47,5 @@ class BaseProtocolHandler(BaseDataHandler):
             # 解析
             return self.rtcm_checker.get_parsed_data()
         except Exception as e:
-            self.log.error('checker error when parse msg: %s' % e)
+            log.error('checker error when parse msg: %s' % e)
         return None

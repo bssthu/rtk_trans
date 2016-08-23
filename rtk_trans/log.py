@@ -11,10 +11,11 @@ import logging
 from logging import handlers
 
 log_dir = 'logs'
+logger = None
 
 
 class Log:
-    def __init__(self, name, to_file=True):
+    def __init__(self, name, to_file):
         """初始化日志系统
 
         使用本模块中的其他方法之前必须调用本方法。
@@ -24,8 +25,8 @@ class Log:
             to_file: 写入到文件系统 (default True)
         """
 
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.DEBUG)
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -37,16 +38,15 @@ class Log:
             fh.setLevel(logging.DEBUG)
             fh.doRollover()
             fh.setFormatter(formatter)
-            logger.addHandler(fh)
+            self.logger.addHandler(fh)
             self.fh = fh
 
         # to screen
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
         ch.setFormatter(formatter)
-        logger.addHandler(ch)
+        self.logger.addHandler(ch)
         self.ch = ch
-        self.logger = logger
         self.logging = True
 
     def close(self):
@@ -59,20 +59,39 @@ class Log:
             self.ch.close()
             self.logging = False
 
-    def debug(self, msg, *args, **kwargs):
-        self.logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg, *args, **kwargs):
-        self.logger.info(msg, *args, **kwargs)
+def init(name, to_file=True):
+    global logger
+    if logger is None:
+        logger = Log(name, to_file)
 
-    def warning(self, msg, *args, **kwargs):
-        self.logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg, *args, **kwargs):
-        self.logger.error(msg, *args, **kwargs)
+def close():
+    global logger
+    if logger is not None:
+        logger.close()
+        logger = None
 
-    def critical(self, msg, *args, **kwargs):
-        self.logger.critical(msg, *args, **kwargs)
 
-    def log(self, lvl, msg, *args, **kwargs):
-        self.logger.log(lvl, msg, *args, **kwargs)
+def debug(msg, *args, **kwargs):
+    logger.logger.debug(msg, *args, **kwargs)
+
+
+def info(msg, *args, **kwargs):
+    logger.logger.info(msg, *args, **kwargs)
+
+
+def warning(msg, *args, **kwargs):
+    logger.logger.warning(msg, *args, **kwargs)
+
+
+def error(msg, *args, **kwargs):
+    logger.logger.error(msg, *args, **kwargs)
+
+
+def critical(msg, *args, **kwargs):
+    logger.logger.critical(msg, *args, **kwargs)
+
+
+def log(lvl, msg, *args, **kwargs):
+    logger.logger.log(lvl, msg, *args, **kwargs)

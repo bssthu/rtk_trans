@@ -6,11 +6,12 @@
 # Description   :
 #
 
+from rtk_trans import log
+
 
 class BaseDataHandler:
     def __init__(self):
         self.data = []
-        self.log = None
 
     def push_back(self, data):
         """加入新收到的数据
@@ -21,7 +22,7 @@ class BaseDataHandler:
         try:
             self.data.extend(data)
         except Exception as e:
-            self.log.error('checker error when add: %s' % e)
+            log.error('checker error when add: %s' % e)
 
     def pop_front(self, len_to_remove):
         """从 data 开头移除数据
@@ -42,5 +43,5 @@ class BaseDataHandler:
                     ret_data = self.data[:]
                     self.data.clear()
         except Exception as e:
-            self.log.error('checker error when remove data: %s' % e)
+            log.error('checker error when remove data: %s' % e)
         return bytes(ret_data)

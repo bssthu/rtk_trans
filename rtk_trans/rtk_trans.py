@@ -27,8 +27,7 @@ class Rtk:
         self.configs = self.load_config()
         if 'logPath' in self.configs.keys() and os.path.isdir(self.configs['logPath']):
             log.log_dir = self.configs['logPath']
-        self.log = log.Log('rtk', True)
-        rtk_trans.http_thread.log = log.Log('web', True)
+        log.init('rtk', True)
 
     def exit_by_signal(self, signum, frame):
         """响应 SIGINT, SIGTERM"""
@@ -43,7 +42,7 @@ class Rtk:
                 if key == 'q':
                     break
                 elif key == 'r':
-                    self.log.info('main: reload config.')
+                    log.info('main: reload config.')
                     self.start_threads_from_config()
                 elif key == 'l':
                     try:
@@ -74,13 +73,13 @@ class Rtk:
             if 'entry' in configs.keys():
                 self.start_rtk_threads(configs['entry'])
         except Exception as e:
-            self.log.error('main: failed to start rtk threads: %s' % e)
+            log.error('main: failed to start rtk threads: %s' % e)
         # web 管理界面
         try:
             if configs['webInterface']['allow'].lower() == 'true':
                 self.start_web_interface(configs['webInterface']['port'], sorted(configs['entry'].keys()))
         except Exception as e:
-            self.log.error('main: failed to start web interface: %s' % e)
+            log.error('main: failed to start web interface: %s' % e)
 
     def start_rtk_threads(self, entries):
         """停止某 rtk 线程，不等待
@@ -105,7 +104,7 @@ class Rtk:
                     rtk_thread.start()
                     self.rtk_threads[name] = rtk_thread
                 except Exception as e:
-                    self.log.error('main: failed to start thread %s: %s' % (name, e))
+                    log.error('main: failed to start thread %s: %s' % (name, e))
 
     def stop_thread(self, name):
         """停止某 rtk 线程，不等待
@@ -120,9 +119,9 @@ class Rtk:
                 rtk_thread = self.rtk_threads[name]
                 if isinstance(rtk_thread, RtkGroup) and rtk_thread.is_alive():
                     rtk_thread.running = False
-                    self.log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
+                    log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
         except Exception as e:
-            self.log.error('main: failed to stop thread %s: %s' % (name, e))
+            log.error('main: failed to stop thread %s: %s' % (name, e))
 
     def wait_for_thread(self, name):
         """等待某 rtk 线程完全退出
@@ -138,11 +137,11 @@ class Rtk:
                 if isinstance(rtk_thread, RtkGroup) and rtk_thread.is_alive():
                     # wait
                     rtk_thread.join()
-                self.log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))
+                log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))
                 # remove
                 del self.rtk_threads[name]
         except Exception as e:
-            self.log.error('main: error when wait for thread %s: %s' % (name, e))
+            log.error('main: error when wait for thread %s: %s' % (name, e))
 
     def stop_and_wait_for_thread(self, name):
         """停止某 rtk 线程，等待直到退出成功
@@ -185,7 +184,7 @@ class Rtk:
             with open(config_file_name) as config_fp:
                 configs = json.load(config_fp)
         except Exception as e:
-            self.log.error('main: failed to load config from conf/config.json: %s' % e)
+            log.error('main: failed to load config from conf/config.json: %s' % e)
         if 'entry' not in configs.keys():
             configs['entry'] = {}
 
@@ -203,12 +202,12 @@ class Rtk:
                             if name not in configs['entry'].keys():
                                 configs['entry'][name] = config
                     except Exception as e:
-                        self.log.error('main: failed to load config from conf/%s: %s' % (file_name, e))
+                        log.error('main: failed to load config from conf/%s: %s' % (file_name, e))
 
         return configs
 
     def main(self):
-        self.log.info('main: start')
+        log.info('main: start')
 
         # start rtk
         self.start_threads_from_config()
@@ -223,6 +222,5 @@ class Rtk:
             self.wait_for_thread(name)
         self.stop_and_wait_for_web_interface()
 
-        self.log.info('main: bye')
-        self.log.close()
-        rtk_trans.http_thread.log.close()
+        log.info('main: bye')
+        log.close()

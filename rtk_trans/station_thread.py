@@ -25,7 +25,6 @@ class StationThread(threading.Thread):
         self.config = config
         self.got_data_cb = got_data_cb
         self.connection_thread = None
-        self.log = None
         self.running = True
 
     def send(self, data):

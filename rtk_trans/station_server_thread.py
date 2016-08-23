@@ -11,6 +11,7 @@ import time
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
 from rtk_trans import handshake_timeout_second
+from rtk_trans import log
 
 
 class StationServerThread(StationThread):
@@ -33,7 +34,7 @@ class StationServerThread(StationThread):
 
         循环运行，接受新的客户端的连接。
         """
-        self.log.info('station server thread: start, port: %d' % self.port)
+        log.info('station server thread: start, port: %d' % self.port)
         try:
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -44,7 +45,7 @@ class StationServerThread(StationThread):
                 try:
                     conn, address = server.accept()
                     conn.settimeout(3)
-                    self.log.debug('new station connection from: %s' % str(address))
+                    log.debug('new station connection from: %s' % str(address))
                     self.got_client(conn, str(address))
                 except socket.timeout:
                     pass
@@ -52,9 +53,9 @@ class StationServerThread(StationThread):
             # clean up
             server.close()
             self.disconnect()
-            self.log.info('station server thread: bye')
+            log.info('station server thread: bye')
         except Exception as e:
-            self.log.error('station server thread error: %s' % e)
+            log.error('station server thread error: %s' % e)
             self.running = False
         self.disconnect()
 
@@ -72,7 +73,6 @@ class StationServerThread(StationThread):
             address: 地址 str
         """
         new_connection_thread = StationConnectionThread(self.name, conn, address, self.config)
-        new_connection_thread.log = self.log
         new_connection_thread.start()
         self.new_connections.append((new_connection_thread, time.time()))
 
@@ -88,7 +88,7 @@ class StationServerThread(StationThread):
                 # 握手成功
                 if self.connection_thread is not None and self.connection_thread.is_alive():
                     # stop old
-                    self.log.info('stopping existing station connection thread.')
+                    log.info('stopping existing station connection thread.')
                     self.connection_thread.running = False  # 不用等待
                     self.connection_thread.got_data = lambda data: None
                 # set new connection_thread

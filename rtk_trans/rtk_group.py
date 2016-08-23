@@ -10,6 +10,7 @@ import threading
 from multiprocessing import Process, Queue, queues
 from rtk_trans.rtk_thread import RtkThread
 from rtk_trans.http_thread import RtkStatus
+from rtk_trans import log
 
 
 class RtkGroup(threading.Thread):
@@ -26,7 +27,6 @@ class RtkGroup(threading.Thread):
         self.thread_id = thread_id
         self.config = config
         self.running = True
-        self.log = None
 
     def run(self):
         queue_in = Queue()
@@ -47,6 +47,10 @@ class RtkGroup(threading.Thread):
 
 
 def process_main(queue_in, queue_out, name, config):
+    """进程主函数"""
+    enable_log = config['enableLog'].lower() == 'true'
+    log.init(name, enable_log)
+
     rtk_thread = RtkThread(name, config, lambda data: queue_out.put(name))
     rtk_thread.start()
 
@@ -59,3 +63,5 @@ def process_main(queue_in, queue_out, name, config):
             pass
     rtk_thread.running = False
     rtk_thread.join()
+
+    log.close()

@@ -8,6 +8,7 @@
 
 from rtk_protocol.base_data_handler import BaseDataHandler
 from rtk_protocol.rtcm_util import try_parse
+from rtk_trans import log
 
 
 class RtcmChecker(BaseDataHandler):
@@ -27,7 +28,6 @@ class RtcmChecker(BaseDataHandler):
             else:
                 self.is_acceptable_msg_type = lambda x: True
         self.data = []
-        self.log = None
 
     def get_parsed_data(self):
         """解析数据
@@ -50,19 +50,19 @@ class RtcmChecker(BaseDataHandler):
             index, len_message, msg_type = try_parse(data)
             if index > 0:
                 # 删除无法解析的数据
-                self.log.debug('unknown data size: %d' % index)
+                log.debug('unknown data size: %d' % index)
                 # print unknown data
                 # print([hex(x) for x in data[:index]])
                 # print(bytes(data[:index]).decode('utf-8', errors='ignore'))
                 self.pop_front(index)
             if len_message > 0:
                 # 删除解析后的数据
-                self.log.debug('pkg size: %d, msg size: %d, msg type: %d' % (len_message, len_message-6, msg_type))
+                log.debug('pkg size: %d, msg size: %d, msg type: %d' % (len_message, len_message-6, msg_type))
                 # print([hex(x) for x in data[:index + len_message]])
                 # print(bytes(data[:index + len_message]).decode('utf-8', errors='ignore'))
                 parsed_data = self.pop_front(len_message)
                 if self.is_acceptable_msg_type(msg_type):
                     return bytes(parsed_data)
         except Exception as e:
-            self.log.error('checker error when parse msg: %s' % e)
+            log.error('checker error when parse msg: %s' % e)
         return None

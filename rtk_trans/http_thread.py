@@ -11,9 +11,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import threading
-
-
-log = None
+from rtk_trans import log
 
 
 class HttpThread(threading.Thread):
