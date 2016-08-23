@@ -45,7 +45,7 @@ class RtkThread(threading.Thread):
             self.station_ip_address = None
         self.station_port = config['stationPort']
         self.listen_port = config['listenPort']
-        self.control_port = config['controlPort']
+        self.control_port = config['controlPort'] if 'controlPort' in config.keys() else None
         self.rtk_filter = config['filter'] if 'filter' in config.keys() else None
         if not isinstance(self.rtk_filter, list):
             self.rtk_filter = None

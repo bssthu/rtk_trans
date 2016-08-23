@@ -23,7 +23,7 @@ class ControlThread(threading.Thread):
         """构造函数
 
         Args:
-            port: 控制端口号
+            port: 控制端口号, None 表示不启用
             got_command_cb: 接收到指令时调用的回调函数
         """
         super().__init__()
@@ -42,6 +42,9 @@ class ControlThread(threading.Thread):
 
         循环运行，接受到控制端口的 socket 连接（唯一），接收命令。
         """
+        if self.port is None:
+            return
+
         self.log.info('control thread: start, port: %d' % self.port)
         try:
             # 开始监听
