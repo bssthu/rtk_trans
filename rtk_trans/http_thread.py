@@ -2,11 +2,12 @@
 # -*- coding:utf-8 -*-
 # File          : http_thread.py
 # Author        : bssthu
-# Project       : cyl-eye-770
+# Project       : rtk_trans
 # Description   : 
 # 
 
 import datetime
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import threading
@@ -39,10 +40,13 @@ class HttpThread(threading.Thread):
         """
         log.info('http thread: start, port: %d' % self.port)
 
-        self.server = ThreadingHTTPServer(('', self.port), RequestHandler)
+        try:
+            self.server = ThreadingHTTPServer(('', self.port), RequestHandler)
+            self.server.serve_forever()
+        except Exception as e:
+            log.error('http thread error: %s' % e)
 
-        self.server.serve_forever()
-
+        time.sleep(0.5)
         log.info('http thread: bye')
 
     def shutdown(self):
@@ -101,7 +105,9 @@ class RtkStatus:
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     """支持多线程"""
-    pass
+    def server_bind(self):
+        self.allow_reuse_address = True
+        super().server_bind()
 
 
 class RequestHandler(BaseHTTPRequestHandler):

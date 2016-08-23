@@ -7,9 +7,9 @@
 # 
 
 import threading
-import time
 from multiprocessing import Process, Queue, queues
 from rtk_trans.rtk_thread import RtkThread
+from rtk_trans.http_thread import RtkStatus
 
 
 class RtkGroup(threading.Thread):
@@ -29,24 +29,30 @@ class RtkGroup(threading.Thread):
         self.log = None
 
     def run(self):
-        state_queue = Queue()
-        p = Process(target=process_main, args=(state_queue, self.name, self.config))
+        queue_in = Queue()
+        queue_out = Queue()
+        p = Process(target=process_main, args=(queue_in, queue_out, self.name, self.config))
         p.start()
 
         # wait
         while self.running:
-            time.sleep(2)
-        state_queue.put(False)
+            try:
+                name = queue_out.get(timeout=1)
+                RtkStatus.update_rcv_time(name)
+            except queues.Empty:
+                pass
+        queue_in.put(False)
         p.join()
+        RtkStatus.update_status(self.name, RtkStatus.S_TERMINATED)
 
 
-def process_main(state_queue, name, config):
-    rtk_thread = RtkThread(name, config)
+def process_main(queue_in, queue_out, name, config):
+    rtk_thread = RtkThread(name, config, lambda data: queue_out.put(name))
     rtk_thread.start()
 
     while True:
         try:
-            running = state_queue.get(timeout=1)
+            running = queue_in.get(timeout=1)
             if not running:
                 break
         except queues.Empty:

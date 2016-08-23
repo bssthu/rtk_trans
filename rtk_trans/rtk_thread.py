@@ -13,11 +13,10 @@ from rtk_trans.control_thread import ControlThread
 from rtk_trans.server_thread import ServerThread
 from rtk_trans.station_client_thread import StationClientThread
 from rtk_trans.station_server_thread import StationServerThread
-from rtk_trans.http_thread import RtkStatus
 
 
 class RtkThread(threading.Thread):
-    def __init__(self, name, config):
+    def __init__(self, name, config, got_data_cb):
         """初始化
 
         Args:
@@ -26,6 +25,7 @@ class RtkThread(threading.Thread):
         """
         super().__init__()
         self.name = name
+        self.got_data_cb = got_data_cb
         self.server = None
         self.controller = None
         self.station = None
@@ -49,14 +49,14 @@ class RtkThread(threading.Thread):
         # log init
         self.log = log.Log(name, self.enable_log)
 
-    def got_data_cb(self, data):
+    def got_data(self, data):
         """接收到差分数据的回调函数
 
         Args:
             <bytes> data: 收到的数据包
         """
         self.server.dispatcher.data_queue.put(data)
-        RtkStatus.update_rcv_time(self.name)
+        self.got_data_cb(data)
 
     def got_command_cb(self, command):
         """接收到来自控制端口的指令的回调函数
@@ -93,10 +93,10 @@ class RtkThread(threading.Thread):
         # station_mode 指基站的模式，本地的模式与之相反
         if self.station_mode == 'server':
             # 基站为 server, 本地为 client
-            self.station = StationClientThread(self.name, self.config, self.got_data_cb)
+            self.station = StationClientThread(self.name, self.config, self.got_data)
         else:
             # 基站为 client, 本地为 server
-            self.station = StationServerThread(self.name, self.config, self.got_data_cb)
+            self.station = StationServerThread(self.name, self.config, self.got_data)
 
         self.server.log = self.log
         self.controller.log = self.log
@@ -114,8 +114,6 @@ class RtkThread(threading.Thread):
         self.stop_thread('controller', self.controller)
         self.stop_thread('station', self.station)
         self.stop_thread('server', self.server)
-
-        RtkStatus.update_status(self.name, RtkStatus.S_TERMINATED)
 
         self.log.info('rtk thread: bye')
         self.log.close()

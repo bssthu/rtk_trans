@@ -90,13 +90,13 @@ class StationServerThread(StationThread):
                     # stop old
                     self.log.info('stopping existing station connection thread.')
                     self.connection_thread.running = False  # 不用等待
-                    self.connection_thread.got_data_cb = lambda data: None
+                    self.connection_thread.got_data = lambda data: None
                 # set new connection_thread
                 self.connection_thread = connection_thread
-                self.connection_thread.got_data_cb = self.got_data_cb
+                self.connection_thread.got_data = self.got_data_cb
                 self.new_connections.remove((connection_thread, established_time_sec))
             elif (time_sec - established_time_sec > handshake_timeout_second) or time_sec < established_time_sec:
                 # 超时
                 connection_thread.running = False   # 不用等待
-                connection_thread.got_data_cb = lambda data: None
+                connection_thread.got_data = lambda data: None
                 self.new_connections.remove((connection_thread, established_time_sec))
