@@ -71,7 +71,7 @@ class Rtk:
             name: rtk 服务名
             status: 服务当前状态, None 表示只 update_rcv_time
         """
-        if isinstance(self.web_interface_thread, HttpProcess) and self.web_interface_thread.is_alive():
+        if isinstance(self.web_interface_thread, HttpProcess):
             self.web_interface_thread.update_status(name, status)
 
     def start_threads_from_config(self):
@@ -129,8 +129,8 @@ class Rtk:
         try:
             if name in self.rtk_threads.keys():
                 rtk_thread = self.rtk_threads[name]
-                if isinstance(rtk_thread, RtkGroup) and rtk_thread.is_alive():
-                    rtk_thread.running = False
+                if isinstance(rtk_thread, RtkGroup):
+                    rtk_thread.stop()
                     log.info('main: require stop thread %d %s.' % (rtk_thread.thread_id, name))
         except Exception as e:
             log.error('main: failed to stop thread %s: %s' % (name, e))
@@ -146,7 +146,7 @@ class Rtk:
         try:
             if name in self.rtk_threads.keys():
                 rtk_thread = self.rtk_threads[name]
-                if isinstance(rtk_thread, RtkGroup) and rtk_thread.is_alive():
+                if isinstance(rtk_thread, RtkGroup):
                     # wait
                     rtk_thread.join()
                 log.info('main: thread %d %s has stopped.' % (rtk_thread.thread_id, name))
@@ -179,8 +179,8 @@ class Rtk:
 
     def stop_and_wait_for_web_interface(self):
         """关闭 web 管理服务器"""
-        if isinstance(self.web_interface_thread, HttpProcess) and self.web_interface_thread.is_alive():
-            self.web_interface_thread.running = False
+        if isinstance(self.web_interface_thread, HttpProcess):
+            self.web_interface_thread.stop()
             self.web_interface_thread.join()
 
     def load_config(self):
@@ -235,4 +235,4 @@ class Rtk:
         self.stop_and_wait_for_web_interface()
 
         log.info('main: bye')
-        log.close_all()
+        log.close('rtk')

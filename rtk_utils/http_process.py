@@ -6,7 +6,6 @@
 # Description   : 
 # 
 
-import threading
 from multiprocessing import Process, Event, Queue, queues
 from rtk_utils.http_thread import HttpThread, RtkStatus
 from rtk_utils import log
@@ -14,7 +13,7 @@ from rtk_utils import log
 PROCESS_NAME = 'http'
 
 
-class HttpProcess(threading.Thread):
+class HttpProcess:
     """http 服务器，多进程封装"""
 
     def __init__(self, http_port, rtk_names):
@@ -24,24 +23,28 @@ class HttpProcess(threading.Thread):
             http_port: web 服务器端口号
             rtk_names: 开启的 rtk 服务名
         """
-        super().__init__()
         self.port = http_port
         self.rtk_names = rtk_names
+
+        self.quit_event = Event()
         self.rtk_status_queue = Queue()
-        self.running = True
+        self.p = Process(name=PROCESS_NAME, target=process_http,
+                    args=(self.quit_event, self.rtk_status_queue, self.port, self.rtk_names))
+
+    def start(self):
+        self.run()
 
     def run(self):
-        quit_event = Event()
-        p = Process(name=PROCESS_NAME, target=process_http,
-                    args=(quit_event, self.rtk_status_queue, self.port, self.rtk_names))
-        p.start()
+        if not self.p.is_alive():
+            log.info('start http')
+            self.p.start()
 
-        # wait
-        while self.running and p.is_alive():
-            p.join(timeout=1)
+    def stop(self):
         # require stop
-        quit_event.set()
-        p.join()
+        self.quit_event.set()
+
+    def join(self):
+        self.p.join()
 
     def update_status(self, name, status):
         """更新 rtk 状态
@@ -69,10 +72,13 @@ def process_http(quit_event, rtk_status_queue, http_port, rtk_names):
     http_thread.start()
 
     # loop
-    while not quit_event.is_set():
-        quit_event.wait(timeout=1)
-        update_from_queue(rtk_status_queue,
-                          lambda name_status: RtkStatus.update_status(name_status[0], name_status[1]))
+    try:
+        while not quit_event.is_set():
+            quit_event.wait(timeout=1)
+            update_from_queue(rtk_status_queue,
+                              lambda name_status: RtkStatus.update_status(name_status[0], name_status[1]))
+    except KeyboardInterrupt:
+        pass
 
     # quit
     http_thread.shutdown()
