@@ -62,3 +62,8 @@ target/
 *.log
 
 nohup.out
+
+*~
+.*.swp
+__MACOSX
+._

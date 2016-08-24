@@ -78,7 +78,10 @@ class Rtk:
         # web 管理界面
         try:
             if configs['webInterface']['allow'].lower() == 'true':
-                self.start_web_interface(configs['webInterface']['port'], sorted(configs['entry'].keys()))
+                if self.web_interface_thread is None:
+                    self.start_web_interface(configs['webInterface']['port'], sorted(configs['entry'].keys()))
+                else:
+                    self.web_interface_thread.update_names(sorted(configs['entry'].keys()))
         except Exception as e:
             log.error('main: failed to start web interface: %s' % e)
 
@@ -198,7 +201,7 @@ class Rtk:
                     try:
                         with open(config_file_name) as config_fp:
                             sub_configs = json.load(config_fp)
-                        # insert inqto main config
+                        # insert into main config
                         for name, config in sorted(sub_configs['entry'].items()):
                             if name not in configs['entry'].keys():
                                 configs['entry'][name] = config

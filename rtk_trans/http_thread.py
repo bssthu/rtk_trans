@@ -26,9 +26,18 @@ class HttpThread(threading.Thread):
         """
         super().__init__()
         self.port = http_port
-        RtkStatus.update_names(rtk_names)
+        self.update_names(rtk_names)
 
         self.server = None
+
+    def update_names(self, rtk_names):
+        """更新 rtk 状态查询的名字表
+
+        Args:
+            rtk_names: 开启的 rtk 服务名
+        """
+        log.info('http thread: reload %d name(s)' % len(rtk_names))
+        RtkStatus.update_names(rtk_names)
 
     def run(self):
         """线程主函数

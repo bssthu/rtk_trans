@@ -54,7 +54,13 @@ class RtkGroup(threading.Thread):
 
 
 def process_main(queue_in, queue_out, name, config):
-    """进程主函数"""
+    """进程主函数
+
+    Args:
+        queue_in: mainProcess 到当前进程，当需要退出时，mainProcess 向队列中放入 False
+        queue_out: 收到数据时
+        config: 配置 dict
+    """
     enable_log = config['enableLog'].lower() == 'true'
     log.init(name, enable_log)
 
