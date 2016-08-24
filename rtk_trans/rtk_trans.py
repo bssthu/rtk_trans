@@ -41,6 +41,7 @@ class Rtk:
         """quit when press q or press ctrl-c, or exception from other threads"""
         try:
             while True:
+                time.sleep(2)   # 减少死锁概率
                 print("enter 'q' to quit, 'r' to reload, 'l' to list ports.")
                 key = input().lower().strip()
                 if key == 'q':

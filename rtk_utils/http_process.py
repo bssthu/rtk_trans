@@ -6,7 +6,8 @@
 # Description   : 
 # 
 
-from multiprocessing import Process, Event, Queue, queues
+from multiprocessing import Process, Event, queues
+
 from rtk_utils.http_thread import HttpThread, RtkStatus
 from rtk_utils import log
 
