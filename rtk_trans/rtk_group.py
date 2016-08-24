@@ -6,47 +6,38 @@
 # Description   : 管理一组差分
 # 
 
-from multiprocessing import Process, Event, Queue, queues
+from multiprocessing import Process, Event
 from rtk_trans.rtk_thread import RtkThread
 from rtk_utils import log
 from rtk_utils.http_thread import RtkStatus
 
 
 class RtkGroup:
-    def __init__(self, name, thread_id, config, update_status_cb):
+    def __init__(self, name, thread_id, config, status_queue):
         """初始化
 
         Args:
             name: rtk 线程名
             thread_id: 线程 id
             config: 配置 dict
-            update_status_cb: 更新差分状态的回调函数
+            status_queue: 更新差分状态的队列
         """
         self.name = name
         self.thread_id = thread_id
         self.config = config
-        self.update_status_cb = update_status_cb
+        self.status_queue = status_queue
 
         self.quit_event = Event()
-        self.queue_out = Queue()
         self.p = Process(name=self.name, target=process_main,
-                    args=(self.quit_event, self.queue_out, self.name, self.config))
+                         args=(self.quit_event, self.status_queue, self.name, self.config))
+        self.p.daemon = True
 
     def start(self):
-        self.run()
+        if not self.p.is_alive():
+            self.run()
 
     def run(self):
         self.p.start()
-
-        # # wait
-        # while self.running and p.is_alive():
-        #     try:
-        #         while not queue_out.empty():
-        #             status = queue_out.get(block=False)
-        #             self.update_status_cb(self.name, status)
-        #         p.join(timeout=1)
-        #     except queues.Empty:
-        #         pass
 
     def stop(self):
         # require stop
@@ -54,10 +45,7 @@ class RtkGroup:
 
     def join(self):
         self.p.join()
-        # clear queue
-        while not self.queue_out.empty():
-            self.queue_out.get(block=False)
-        self.update_status_cb(self.name, RtkStatus.S_TERMINATED)
+        self.status_queue.put((self.name, RtkStatus.S_TERMINATED))
 
 
 def process_main(quit_event, queue_out, name, config):
@@ -72,7 +60,7 @@ def process_main(quit_event, queue_out, name, config):
     enable_log = config['enableLog'].lower() == 'true'
     log.init(name, enable_log)
 
-    rtk_thread = RtkThread(name, config, lambda status: queue_out.put(status))
+    rtk_thread = RtkThread(name, config, lambda status: queue_out.put((name, status)))
     rtk_thread.start()
 
     try:

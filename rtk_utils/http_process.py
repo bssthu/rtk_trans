@@ -16,27 +16,27 @@ PROCESS_NAME = 'http'
 class HttpProcess:
     """http 服务器，多进程封装"""
 
-    def __init__(self, http_port, rtk_names):
+    def __init__(self, http_port, rtk_names, status_queue):
         """构造函数
 
         Args:
-            http_port: web 服务器端口号
+            http_port: web 服务器端口号, None 表示不开启
             rtk_names: 开启的 rtk 服务名
+            status_queue: 差分状态队列
         """
         self.port = http_port
         self.rtk_names = rtk_names
+        self.status_queue = status_queue
 
         self.quit_event = Event()
-        self.rtk_status_queue = Queue()
         self.p = Process(name=PROCESS_NAME, target=process_http,
-                    args=(self.quit_event, self.rtk_status_queue, self.port, self.rtk_names))
+                         args=(self.quit_event, self.status_queue, self.port, self.rtk_names))
 
     def start(self):
         self.run()
 
     def run(self):
         if not self.p.is_alive():
-            log.info('start http')
             self.p.start()
 
     def stop(self):
@@ -53,7 +53,7 @@ class HttpProcess:
             name: rtk 服务名
             status: 服务当前状态, None 表示只 update_rcv_time
         """
-        self.rtk_status_queue.put((name, status))
+        self.status_queue.put((name, status))
 
 
 def process_http(quit_event, rtk_status_queue, http_port, rtk_names):
@@ -65,11 +65,14 @@ def process_http(quit_event, rtk_status_queue, http_port, rtk_names):
         http_port: web 服务器端口号
         rtk_names: 开启的 rtk 服务名
     """
-    log.init(PROCESS_NAME)
+    if http_port is not None:
+        log.init(PROCESS_NAME)
 
     # start
     http_thread = HttpThread(http_port, rtk_names)
-    http_thread.start()
+
+    if http_port is not None:
+        http_thread.start()
 
     # loop
     try:
@@ -81,8 +84,9 @@ def process_http(quit_event, rtk_status_queue, http_port, rtk_names):
         pass
 
     # quit
-    http_thread.shutdown()
-    http_thread.join()
+    if http_port is not None:
+        http_thread.shutdown()
+        http_thread.join()
 
     log.close(PROCESS_NAME)
 

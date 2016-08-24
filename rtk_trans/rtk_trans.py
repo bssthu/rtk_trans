@@ -8,6 +8,7 @@
 
 import json
 import multiprocessing
+from multiprocessing import Queue
 import os
 import signal
 import sys
@@ -24,6 +25,7 @@ class Rtk:
         self.thread_count = 0
         self.web_interface_thread = None
         self.is_interrupt = False
+        self.status_queue = Queue()
         # log init
         self.configs = self.load_config()
         if 'logPath' in self.configs.keys() and os.path.isdir(self.configs['logPath']):
@@ -71,8 +73,7 @@ class Rtk:
             name: rtk 服务名
             status: 服务当前状态, None 表示只 update_rcv_time
         """
-        if isinstance(self.web_interface_thread, HttpProcess):
-            self.web_interface_thread.update_status(name, status)
+        self.status_queue.put((name, status))
 
     def start_threads_from_config(self):
         """读取配置文件，启动所有 rtk 线程"""
@@ -88,8 +89,10 @@ class Rtk:
             log.error('main: failed to start rtk threads: %s' % e)
         # web 管理界面
         try:
-            if configs['webInterface']['allow'].lower() == 'true':
-                self.start_web_interface(configs['webInterface']['port'], sorted(configs['entry'].keys()))
+            port = configs['webInterface']['port']
+            if configs['webInterface']['allow'].lower() != 'true':
+                port = None
+            self.start_web_interface(port, sorted(configs['entry'].keys()))
         except Exception as e:
             log.error('main: failed to start web interface: %s' % e)
 
@@ -111,7 +114,7 @@ class Rtk:
                         if rtk_thread.config == config:
                             continue
                         self.stop_and_wait_for_thread(name)
-                    rtk_thread = RtkGroup(name, self.thread_count, config, self.update_status_cb)
+                    rtk_thread = RtkGroup(name, self.thread_count, config, self.status_queue)
                     self.thread_count += 1
                     rtk_thread.start()
                     self.rtk_threads[name] = rtk_thread
@@ -174,7 +177,7 @@ class Rtk:
         # stop old
         self.stop_and_wait_for_web_interface()
         # start new
-        self.web_interface_thread = HttpProcess(port, rtk_names)
+        self.web_interface_thread = HttpProcess(port, rtk_names, self.status_queue)
         self.web_interface_thread.start()
 
     def stop_and_wait_for_web_interface(self):
@@ -182,6 +185,7 @@ class Rtk:
         if isinstance(self.web_interface_thread, HttpProcess):
             self.web_interface_thread.stop()
             self.web_interface_thread.join()
+        self.web_interface_thread = None
 
     def load_config(self):
         """载入配置文件
@@ -234,5 +238,9 @@ class Rtk:
             self.wait_for_thread(name)
         self.stop_and_wait_for_web_interface()
 
+        # clear queue
+        while not self.status_queue.empty():
+            self.status_queue.get(block=False)
+
         log.info('main: bye')
-        log.close('rtk')
+        log.close_all()
