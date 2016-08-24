@@ -6,9 +6,9 @@
 # Description   :
 #
 
-from rtk_protocol.rtcm_checker import RtcmChecker
 from rtk_protocol.base_data_handler import BaseDataHandler
-from rtk_trans import log
+from rtk_protocol.rtcm_checker import RtcmChecker
+from rtk_utils import log
 
 
 class BaseProtocolHandler(BaseDataHandler):

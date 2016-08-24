@@ -8,24 +8,26 @@
 
 import socket
 import time
+
+from rtk_trans import handshake_timeout_second
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
-from rtk_trans import handshake_timeout_second
-from rtk_trans import log
+from rtk_utils import log
 
 
 class StationServerThread(StationThread):
     """从差分源服务器接收数据的线程，差分源为 tcp client, 本地为 tcp server"""
 
-    def __init__(self, name, config, got_data_cb):
+    def __init__(self, name, config, got_data_cb, update_status_cb):
         """构造函数
 
         Args:
             name: rtk 服务名
             config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
+            update_status_cb: 更新差分状态的回调函数
         """
-        super().__init__(name, config, got_data_cb)
+        super().__init__(name, config, got_data_cb, update_status_cb)
         self.port = config['stationPort']
         self.new_connections = []   # 成员为: (连接线程, 连接建立时间)
 
@@ -90,13 +92,15 @@ class StationServerThread(StationThread):
                     # stop old
                     log.info('stopping existing station connection thread.')
                     self.connection_thread.running = False  # 不用等待
-                    self.connection_thread.got_data = lambda data: None
+                    self.connection_thread.got_data_cb = lambda data: None
                 # set new connection_thread
                 self.connection_thread = connection_thread
-                self.connection_thread.got_data = self.got_data_cb
+                self.connection_thread.got_data_cb = self.got_data_cb
+                self.connection_thread.update_status_cb = self.update_status_cb
                 self.new_connections.remove((connection_thread, established_time_sec))
             elif (time_sec - established_time_sec > handshake_timeout_second) or time_sec < established_time_sec:
                 # 超时
                 connection_thread.running = False   # 不用等待
-                connection_thread.got_data = lambda data: None
+                connection_thread.got_data_cb = lambda data: None
+                self.connection_thread.update_status_cb = lambda name, status: None
                 self.new_connections.remove((connection_thread, established_time_sec))

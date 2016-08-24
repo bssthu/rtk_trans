@@ -7,73 +7,72 @@
 # 
 
 import threading
-import time
-from multiprocessing import Process, Queue, queues
+from multiprocessing import Process, Event, Queue, queues
+
 from rtk_trans.rtk_thread import RtkThread
-from rtk_trans.http_thread import RtkStatus
-from rtk_trans import log
+from rtk_utils import log
+from rtk_utils.http_thread import RtkStatus
 
 
 class RtkGroup(threading.Thread):
-    def __init__(self, name, thread_id, config):
+    def __init__(self, name, thread_id, config, update_status_cb):
         """初始化
 
         Args:
             name: rtk 线程名
             thread_id: 线程 id
             config: 配置 dict
+            update_status_cb: 更新差分状态的回调函数
         """
         super().__init__()
         self.name = name
         self.thread_id = thread_id
         self.config = config
+        self.update_status_cb = update_status_cb
         self.running = True
 
     def run(self):
-        queue_in = Queue()
+        quit_event = Event()
         queue_out = Queue()
-        p = Process(name=self.name, target=process_main, args=(queue_in, queue_out, self.name, self.config))
+        p = Process(name=self.name, target=process_main,
+                    args=(quit_event, queue_out, self.name, self.config))
         p.start()
 
         # wait
         while self.running and p.is_alive():
             try:
                 while not queue_out.empty():
-                    name = queue_out.get(block=False)
-                    RtkStatus.update_rcv_time(name)
+                    status = queue_out.get(block=False)
+                    self.update_status_cb(self.name, status)
                 p.join(timeout=1)
             except queues.Empty:
                 pass
         # require stop
-        queue_in.put(False)
+        quit_event.set()
         p.join()
         # clear queue
         while not queue_out.empty():
             queue_out.get(block=False)
-        RtkStatus.update_status(self.name, RtkStatus.S_TERMINATED)
+        self.update_status_cb(self.name, RtkStatus.S_TERMINATED)
 
 
-def process_main(queue_in, queue_out, name, config):
+def process_main(quit_event, queue_out, name, config):
     """进程主函数
 
     Args:
-        queue_in: mainProcess 到当前进程，当需要退出时，mainProcess 向队列中放入 False
-        queue_out: 收到数据时
+        quit_event: 需要退出的事件
+        queue_out: 每当收到数据时，将线程名填入此队列
+        name: 线程名
         config: 配置 dict
     """
     enable_log = config['enableLog'].lower() == 'true'
     log.init(name, enable_log)
 
-    rtk_thread = RtkThread(name, config, lambda data: queue_out.put(name))
+    rtk_thread = RtkThread(name, config, lambda status: queue_out.put(status))
     rtk_thread.start()
 
-    while True:
-        try:
-            running = queue_in.get(timeout=1)
-            if not running:
-                break
-        except queues.Empty:
-            pass
+    quit_event.wait()
+
     rtk_thread.running = False
     rtk_thread.join()
 

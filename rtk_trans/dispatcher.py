@@ -7,8 +7,9 @@
 #
 
 import queue
+
 from rtk_trans.sender_thread import SenderThread
-from rtk_trans import log
+from rtk_utils import log
 
 
 class Dispatcher:

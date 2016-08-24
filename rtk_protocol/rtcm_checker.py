@@ -8,7 +8,7 @@
 
 from rtk_protocol.base_data_handler import BaseDataHandler
 from rtk_protocol.rtcm_util import try_parse
-from rtk_trans import log
+from rtk_utils import log
 
 
 class RtcmChecker(BaseDataHandler):
@@ -57,7 +57,7 @@ class RtcmChecker(BaseDataHandler):
                 self.pop_front(index)
             if len_message > 0:
                 # 删除解析后的数据
-                log.debug('pkg size: %d, msg size: %d, msg type: %d' % (len_message, len_message-6, msg_type))
+                log.debug('pkg size: %d, msg size: %d, msg type: %d' % (len_message, len_message - 6, msg_type))
                 # print([hex(x) for x in data[:index + len_message]])
                 # print(bytes(data[:index + len_message]).decode('utf-8', errors='ignore'))
                 parsed_data = self.pop_front(len_message)

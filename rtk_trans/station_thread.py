@@ -12,18 +12,20 @@ import threading
 class StationThread(threading.Thread):
     """从差分源服务器接收数据的线程，差分源为 tcp server, 本地为 tcp client"""
 
-    def __init__(self, name, config, got_data_cb):
+    def __init__(self, name, config, got_data_cb, update_status_cb):
         """构造函数
 
         Args:
             name: rtk 服务名
             config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
+            update_status_cb: 更新差分状态的回调函数
         """
         super().__init__()
         self.name = name
         self.config = config
         self.got_data_cb = got_data_cb
+        self.update_status_cb = update_status_cb
         self.connection_thread = None
         self.running = True
 

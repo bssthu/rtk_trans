@@ -7,11 +7,12 @@
 # 
 
 import datetime
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
-import threading
-from rtk_trans import log
+
+from rtk_utils import log
 
 
 class HttpThread(threading.Thread):
@@ -36,7 +37,7 @@ class HttpThread(threading.Thread):
         Args:
             rtk_names: 开启的 rtk 服务名
         """
-        log.info('http thread: reload %d name(s)' % len(rtk_names))
+        log.info('http thread: load %d name(s)' % len(rtk_names))
         RtkStatus.update_names(rtk_names)
 
     def run(self):
@@ -101,13 +102,16 @@ class RtkStatus:
 
         Args:
             name: rtk 服务名
-            status: 服务当前状态
+            status: 服务当前状态, None 表示只 update_rcv_time
         """
-        try:
-            if name in RtkStatus.rtk_status.keys():
-                RtkStatus.rtk_status[name] = status
-        except Exception as e:
-            log.warning('Failed when update status: %s' % e)
+        if status is None:
+            RtkStatus.update_rcv_time(name)
+        else:
+            try:
+                if name in RtkStatus.rtk_status.keys():
+                    RtkStatus.rtk_status[name] = status
+            except Exception as e:
+                log.warning('Failed when update status: %s' % e)
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -116,8 +120,6 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 class RequestHandler(BaseHTTPRequestHandler):
     """HTTP 请求处理"""
-
-    alarm_history = []
 
     def __init__(self, request, client_address, server):
         """设置超时"""

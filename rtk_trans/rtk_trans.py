@@ -6,15 +6,16 @@
 # Description   : socket 转发数据
 # 
 
-import os
-import sys
 import json
-import time
-import signal
 import multiprocessing
-from rtk_trans import log
+import os
+import signal
+import sys
+import time
+
 from rtk_trans.rtk_group import RtkGroup
-from rtk_trans.http_thread import HttpThread
+from rtk_utils import log
+from rtk_utils.http_process import HttpProcess
 
 
 class Rtk:
@@ -63,6 +64,16 @@ class Rtk:
             while not self.is_interrupt:
                 time.sleep(1)
 
+    def update_status_cb(self, name, status):
+        """更新 rtk 状态
+
+        Args:
+            name: rtk 服务名
+            status: 服务当前状态, None 表示只 update_rcv_time
+        """
+        if isinstance(self.web_interface_thread, HttpProcess) and self.web_interface_thread.is_alive():
+            self.web_interface_thread.update_status(name, status)
+
     def start_threads_from_config(self):
         """读取配置文件，启动所有 rtk 线程"""
         # config
@@ -78,10 +89,7 @@ class Rtk:
         # web 管理界面
         try:
             if configs['webInterface']['allow'].lower() == 'true':
-                if self.web_interface_thread is None:
-                    self.start_web_interface(configs['webInterface']['port'], sorted(configs['entry'].keys()))
-                else:
-                    self.web_interface_thread.update_names(sorted(configs['entry'].keys()))
+                self.start_web_interface(configs['webInterface']['port'], sorted(configs['entry'].keys()))
         except Exception as e:
             log.error('main: failed to start web interface: %s' % e)
 
@@ -103,7 +111,7 @@ class Rtk:
                         if rtk_thread.config == config:
                             continue
                         self.stop_and_wait_for_thread(name)
-                    rtk_thread = RtkGroup(name, self.thread_count, config)
+                    rtk_thread = RtkGroup(name, self.thread_count, config, self.update_status_cb)
                     self.thread_count += 1
                     rtk_thread.start()
                     self.rtk_threads[name] = rtk_thread
@@ -166,13 +174,13 @@ class Rtk:
         # stop old
         self.stop_and_wait_for_web_interface()
         # start new
-        self.web_interface_thread = HttpThread(port, rtk_names)
+        self.web_interface_thread = HttpProcess(port, rtk_names)
         self.web_interface_thread.start()
 
     def stop_and_wait_for_web_interface(self):
         """关闭 web 管理服务器"""
-        if isinstance(self.web_interface_thread, HttpThread) and self.web_interface_thread.is_alive():
-            self.web_interface_thread.shutdown()
+        if isinstance(self.web_interface_thread, HttpProcess) and self.web_interface_thread.is_alive():
+            self.web_interface_thread.running = False
             self.web_interface_thread.join()
 
     def load_config(self):

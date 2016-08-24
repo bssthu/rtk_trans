@@ -8,23 +8,25 @@
 
 import socket
 import time
+
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
-from rtk_trans import log
+from rtk_utils import log
 
 
 class StationClientThread(StationThread):
     """从差分源服务器接收数据的线程，差分源为 tcp server, 本地为 tcp client"""
 
-    def __init__(self, name, config, got_data_cb):
+    def __init__(self, name, config, got_data_cb, update_status_cb):
         """构造函数
 
         Args:
             name: rtk 服务名
             config: 配置
             got_data_cb: 接收到数据包时调用的回调函数
+            update_status_cb: 更新差分状态的回调函数
         """
-        super().__init__(name, config, got_data_cb)
+        super().__init__(name, config, got_data_cb, update_status_cb)
         self.server_ip = config['stationIpAddress']
         self.server_port = config['stationPort']
 
@@ -60,6 +62,7 @@ class StationClientThread(StationThread):
         address = str((self.server_ip, self.server_port))
         self.connection_thread = StationConnectionThread(self.name, conn, address, self.config)
         self.connection_thread.got_data_cb = self.got_data_cb   # 本地为 client, 不验证对方身份，走个流程即可
+        self.connection_thread.update_status_cb = self.update_status_cb
         self.connection_thread.start()
         # wait for connection thread
         while self.running and self.connection_thread.is_alive():

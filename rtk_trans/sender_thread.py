@@ -6,10 +6,11 @@
 # Description   :
 #
 
+import queue
 import socket
 import threading
-import queue
-from rtk_trans import log
+
+from rtk_utils import log
 
 
 class SenderThread(threading.Thread):

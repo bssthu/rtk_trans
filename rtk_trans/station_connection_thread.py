@@ -6,12 +6,13 @@
 # Description   :
 #
 
+import queue
 import socket
 import threading
-import queue
+
 from rtk_protocol.select_protocol import select_protocol
-from rtk_trans.http_thread import RtkStatus
-from rtk_trans import log
+from rtk_utils import log
+from rtk_utils.http_thread import RtkStatus
 
 BUFFER_SIZE = 4096
 
@@ -40,6 +41,8 @@ class StationConnectionThread(threading.Thread):
         self.protocol_handler = select_protocol(config)
 
         self.got_data_cb = lambda data: None    # 连接建立后再设置
+        self.update_status_cb = lambda status: None
+
         self.rcv_count = 0
         self.handshake_ok = False
         self.running = True
@@ -51,13 +54,13 @@ class StationConnectionThread(threading.Thread):
         当 data_queue 过长时，丢弃旧的数据包。
         """
         log.info('station connection thread: start, %s' % self.address)
-        RtkStatus.update_status(self.name, RtkStatus.S_CONNECTED)
+        self.update_status_cb(RtkStatus.S_CONNECTED)
 
         try:
             self.send_and_receive_data()
         except Exception as e:
             log.error('station connection thread error: %s' % e)
-        RtkStatus.update_status(self.name, RtkStatus.S_DISCONNECTED)
+        self.update_status_cb(RtkStatus.S_DISCONNECTED)
         log.info('station connection thread: bye')
 
     def send_and_receive_data(self):

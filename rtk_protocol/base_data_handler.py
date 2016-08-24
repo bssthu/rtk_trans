@@ -6,7 +6,7 @@
 # Description   :
 #
 
-from rtk_trans import log
+from rtk_utils import log
 
 
 class BaseDataHandler:
