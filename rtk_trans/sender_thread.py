@@ -65,8 +65,8 @@ class SenderThread(threading.Thread):
                     pass
             except Exception as e:
                 log.error('sender thread %d error: %s' % (self.sender_id, e))
-                self.running = False
         self.disconnect()
+        self.running = False
         log.info('sender thread %d: bye' % self.sender_id)
 
     def disconnect(self):
