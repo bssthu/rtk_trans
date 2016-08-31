@@ -39,8 +39,8 @@ class SenderThread(threading.Thread):
         当 data_queue 过长时，丢弃旧的数据包。
         """
         log.info('sender thread %d: start, %s' % (self.sender_id, self.address))
-        while self.running:
-            try:
+        try:
+            while self.running:
                 # ignore old data
                 while self.data_queue.qsize() > 10:
                     self.data_queue.get(block=False)
@@ -63,8 +63,8 @@ class SenderThread(threading.Thread):
                         break
                 except socket.timeout:
                     pass
-            except Exception as e:
-                log.error('sender thread %d error: %s' % (self.sender_id, e))
+        except Exception as e:
+            log.error('sender thread %d error: %s' % (self.sender_id, e))
         self.disconnect()
         self.running = False
         log.info('sender thread %d: bye' % self.sender_id)
