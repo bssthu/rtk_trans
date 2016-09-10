@@ -18,10 +18,10 @@ class RtkGroup:
         """初始化
 
         Args:
-            name: rtk 线程名
-            thread_id: 线程 id
-            config: 配置 dict
-            status_queue: 更新差分状态的队列
+            name (str): rtk 线程名
+            thread_id (int): 线程 id
+            config (dict): 配置表
+            status_queue (multiprocessing.Queue): 更新差分状态的队列
         """
         self.name = name
         self.thread_id = thread_id
@@ -53,10 +53,10 @@ def process_main(quit_event, queue_out, name, config):
     """进程主函数
 
     Args:
-        quit_event: 需要退出的事件
-        queue_out: 每当收到数据时，将线程名填入此队列
-        name: 线程名
-        config: 配置 dict
+        quit_event (multiprocessing.Event): 需要退出的事件
+        queue_out (multiprocessing.Queue): 每当收到数据时，将线程名填入此队列
+        name (str): 线程名
+        config (dict): 配置表
     """
     enable_log = config['enableLog'].lower() == 'true'
     log.init(name, enable_log)

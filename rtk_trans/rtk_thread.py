@@ -21,9 +21,9 @@ class RtkThread(threading.Thread):
         """初始化
 
         Args:
-            name: rtk 线程名
-            config: 配置 dict
-            update_status_cb: 更新差分状态的回调函数
+            name (str): rtk 线程名
+            config (dict): 配置 dict
+            update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__()
         self.name = name
@@ -53,7 +53,7 @@ class RtkThread(threading.Thread):
         """接收到差分数据的回调函数
 
         Args:
-            <bytes> data: 收到的数据包
+            data (bytes): 收到的数据包
         """
         self.server.dispatcher.data_queue.put(data)
         self.update_status_cb(None)
@@ -62,7 +62,7 @@ class RtkThread(threading.Thread):
         """接收到来自控制端口的指令的回调函数
 
         Args:
-            command: 待处理的命令
+            command (bytes): 待处理的命令
         """
         if command == b'reset server':
             old_server = self.server
@@ -78,6 +78,12 @@ class RtkThread(threading.Thread):
             self.station.send(command[len('send:'):])
 
     def stop_thread(self, name, thread_to_stop):
+        """结束指定线程
+
+        Args:
+            name (str): 要结束的线程名，名字仅用于 log
+            thread_to_stop (threading.Thread): 要结束的线程
+        """
         try:
             thread_to_stop.running = False
             thread_to_stop.join()

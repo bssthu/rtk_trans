@@ -16,10 +16,10 @@ class StationThread(threading.Thread):
         """构造函数
 
         Args:
-            name: rtk 服务名
-            config: 配置
-            got_data_cb: 接收到数据包时调用的回调函数
-            update_status_cb: 更新差分状态的回调函数
+            name (str): rtk 服务名
+            config (dict): 配置
+            got_data_cb (Callable[[bytes], None]): 接收到数据包时调用的回调函数
+            update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__()
         self.name = name
@@ -30,7 +30,11 @@ class StationThread(threading.Thread):
         self.running = True
 
     def send(self, data):
-        """向差分源发送数据"""
+        """向差分源发送数据
+
+        Args:
+            data (bytes): 要发送的数据
+        """
         connection_thread = self.connection_thread
         if connection_thread is not None:
             connection_thread.add_data_to_send_queue(data)

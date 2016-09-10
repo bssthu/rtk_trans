@@ -18,7 +18,7 @@ class RtcmChecker(BaseDataHandler):
         """构造函数
 
         Args:
-            acceptable_rtcm_msg_type: 使用的 rtcm 类型
+            acceptable_rtcm_msg_type (list[int]): 使用的 rtcm 类型
         """
         super().__init__()
         self.is_acceptable_msg_type = None
@@ -33,7 +33,7 @@ class RtcmChecker(BaseDataHandler):
         """解析数据
 
         Returns:
-            <bytes> 解析了的完整报文
+            return (bytes): 解析了的完整报文
         """
 
         if len(self.data) <= 0:
@@ -60,9 +60,9 @@ class RtcmChecker(BaseDataHandler):
                 log.debug('pkg size: %d, msg size: %d, msg type: %d' % (len_message, len_message - 6, msg_type))
                 # print([hex(x) for x in data[:index + len_message]])
                 # print(bytes(data[:index + len_message]).decode('utf-8', errors='ignore'))
-                parsed_data = self.pop_front(len_message)
+                parsed_data = bytes(self.pop_front(len_message))
                 if self.is_acceptable_msg_type(msg_type):
-                    return bytes(parsed_data)
+                    return parsed_data
         except Exception as e:
             log.error('checker error when parse msg: %s' % e)
         return None

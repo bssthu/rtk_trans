@@ -14,10 +14,10 @@ class BaseDataHandler:
         self.data = []
 
     def push_back(self, data):
-        """加入新收到的数据
+        """加入新收到的数据 (list)
 
         Args:
-            data: 新收到的数据
+            data (list): 新收到的数据
         """
         try:
             self.data.extend(data)
@@ -25,13 +25,13 @@ class BaseDataHandler:
             log.error('checker error when add: %s' % e)
 
     def pop_front(self, len_to_remove):
-        """从 data 开头移除数据
+        """从 data 开头移除数据 (bytes)
 
         Args:
-            len_to_remove: 要删除的数据长度
+            len_to_remove (int): 要删除的数据长度
 
         Returns:
-            <bytes> ret_data: 被删除的数据
+            ret_data (list): 被删除的数据
         """
         ret_data = None
         try:
@@ -44,4 +44,4 @@ class BaseDataHandler:
                     self.data.clear()
         except Exception as e:
             log.error('checker error when remove data: %s' % e)
-        return bytes(ret_data)
+        return ret_data

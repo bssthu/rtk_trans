@@ -20,7 +20,7 @@ class ServerThread(threading.Thread):
         """构造函数
 
         Args:
-            port: 监听的端口
+            port (int): 监听的端口
         """
         super().__init__()
         self.port = port

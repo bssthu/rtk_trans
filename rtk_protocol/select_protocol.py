@@ -10,5 +10,12 @@ from rtk_protocol.base_protocol_handler import BaseProtocolHandler
 
 
 def select_protocol(config):
-    """根据配置选择协议解析类"""
+    """根据配置选择协议解析类
+
+    Args:
+        config (dict): 配置
+
+    Returns:
+        return (BaseProtocolHandler): 协议解析工具的实例
+    """
     return BaseProtocolHandler(config)

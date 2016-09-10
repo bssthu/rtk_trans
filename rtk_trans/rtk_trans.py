@@ -67,15 +67,6 @@ class Rtk:
             while not self.is_interrupt:
                 time.sleep(1)
 
-    def update_status_cb(self, name, status):
-        """更新 rtk 状态
-
-        Args:
-            name: rtk 服务名
-            status: 服务当前状态, None 表示只 update_rcv_time
-        """
-        self.status_queue.put((name, status))
-
     def start_threads_from_config(self):
         """读取配置文件，启动所有 rtk 线程"""
         # config
@@ -103,7 +94,7 @@ class Rtk:
         之后需要调用 wait_for_thread
 
         Args:
-            entries: 各组 rtk 转发配置
+            entries (dict[str, dict]): 各组 rtk 转发配置
         """
         if isinstance(entries, dict):
             for name, config in entries.items():
@@ -128,7 +119,7 @@ class Rtk:
         之后需要调用 wait_for_thread
 
         Args:
-            name: rtk 线程名
+            name (str): rtk 线程名
         """
         try:
             if name in self.rtk_threads.keys():
@@ -145,7 +136,7 @@ class Rtk:
         在 stop_thread 之后调用
 
         Args:
-            name: rtk 线程名
+            name (str): rtk 线程名
         """
         try:
             if name in self.rtk_threads.keys():
@@ -163,7 +154,7 @@ class Rtk:
         """停止某 rtk 线程，等待直到退出成功
 
         Args:
-            name: rtk 线程名
+            name (str): rtk 线程名
         """
         self.stop_thread(name)
         self.wait_for_thread(name)
@@ -172,8 +163,8 @@ class Rtk:
         """启动 web 管理服务器
 
         Args:
-            port: web 服务器端口号
-            rtk_names: 开启的 rtk 服务名
+            port (int): web 服务器端口号
+            rtk_names (list[str]): 开启的 rtk 服务名
         """
         # stop old
         self.stop_and_wait_for_web_interface()

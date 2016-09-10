@@ -23,8 +23,8 @@ class HttpThread(threading.Thread):
         """构造函数
 
         Args:
-            http_port: web 服务器端口号
-            rtk_names: 开启的 rtk 服务名
+            http_port (int): web 服务器端口号
+            rtk_names (list[str]): 开启的 rtk 服务名
         """
         super().__init__()
         self.port = http_port
@@ -36,7 +36,7 @@ class HttpThread(threading.Thread):
         """更新 rtk 状态查询的名字表
 
         Args:
-            rtk_names: 开启的 rtk 服务名
+            rtk_names (list[str]): 开启的 rtk 服务名
         """
         log.info('http thread: load %d name(s)' % len(rtk_names))
         RtkStatus.update_names(rtk_names)
@@ -75,20 +75,22 @@ class RtkStatus:
     S_DISCONNECTED = 'offline'
     S_TERMINATED = 'terminated'
 
+    @staticmethod
     def update_names(names):
         """更新 rtk 服务列表
 
         Args:
-            names: 开启的 rtk 服务名
+            names (list[str]): 开启的 rtk 服务名
         """
         RtkStatus.rtk_last_rcv_time = {name: 'NULL' for name in names}
         RtkStatus.rtk_status = {name: RtkStatus.S_UNKNOWN for name in names}
 
+    @staticmethod
     def update_rcv_time(name):
         """接收到 rtk 数据，更新时间戳
 
         Args:
-            name: rtk 服务名
+            name (str): rtk 服务名
         """
         try:
             # 此处可能不是很线程安全
@@ -98,12 +100,13 @@ class RtkStatus:
         except Exception as e:
             log.warning('Failed when update rcv time: %s' % e)
 
+    @staticmethod
     def update_status(name, status):
         """接收到 rtk 状态更新
 
         Args:
-            name: rtk 服务名
-            status: 服务当前状态, None 表示只 update_rcv_time
+            name (str): rtk 服务名
+            status (str): 服务当前状态, None 表示只 update_rcv_time
         """
         if status is None:
             RtkStatus.update_rcv_time(name)
@@ -162,8 +165,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         This is called by send_response().
 
         Args:
-            code: 状态码
-            size:
+            code (str): 状态码
+            size (str):
         """
         log.debug('%s - - "%s" %s %s' % (self.address_string(), self.requestline, str(code), str(size)))
 
@@ -173,6 +176,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def get_time_string(timestamp=None):
+    """获取时间字符串
+
+    Args:
+        timestamp (datetime.datetime): 时间戳
+    """
     if timestamp is None:
         timestamp = datetime.datetime.now()
     return timestamp.strftime('%Y-%m-%d, %H:%M:%S')

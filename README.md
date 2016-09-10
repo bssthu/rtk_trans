@@ -20,6 +20,7 @@ python3 rtk.py
 ./start.sh
 ```
 
+按'l'+回车显示配置，
 按'r'+回车重新加载配置。
 按'q'+回车或Ctrl+c退出程序。
 
@@ -27,6 +28,8 @@ python3 rtk.py
 
 - `reset server` 关闭所有连到 rtk_trans 的客户 socket
 - `list` 查询
+- `send:数据` 把`数据`透传到差分源
+- `%MODE1` 进入透传模式，直到与 control 模块的连接中断为止
 
 ## 其他说明
 * [主要模块](docs/modules.md)

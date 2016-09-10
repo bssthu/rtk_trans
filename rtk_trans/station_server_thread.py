@@ -22,10 +22,10 @@ class StationServerThread(StationThread):
         """构造函数
 
         Args:
-            name: rtk 服务名
-            config: 配置
-            got_data_cb: 接收到数据包时调用的回调函数
-            update_status_cb: 更新差分状态的回调函数
+            name (str): rtk 服务名
+            config (dict): 配置
+            got_data_cb (Callable[[bytes], None]): 接收到数据包时调用的回调函数
+            update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__(name, config, got_data_cb, update_status_cb)
         self.port = config['stationPort']
@@ -71,8 +71,8 @@ class StationServerThread(StationThread):
         """新客户端连入时的处理
 
         Args:
-            conn: client socket
-            address: 地址 str
+            conn (socket.socket): client socket
+            address (str): 地址 str
         """
         new_connection_thread = StationConnectionThread(self.name, conn, address, self.config)
         new_connection_thread.start()

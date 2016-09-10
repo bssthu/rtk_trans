@@ -18,12 +18,12 @@ def try_parse(data):
     """从头开始，逐字节尝试解析
 
     Args:
-        data: 要解析的数据
+        data (list): 要解析的数据
 
     Returns:
-        index: 尝试到的位置
-        len_message: 报文总长度，-1表示没有报文，-2表示报文未完
-        msg_type: 报文类型
+        index (int): 尝试到的位置
+        len_message (int): 报文总长度，-1表示没有报文，-2表示报文未完
+        msg_type (int): 报文类型
     """
     for i in range(0, len(data) - 1):
         len_message = try_parse_from_begin(data[i:])
@@ -39,12 +39,13 @@ def try_parse_from_begin(data):
     """从 data 首字节开始解析
 
     Args:
-        data: 要解析的数据
+        data (list): 要解析的数据
 
     Returns:
-        正整数: 报文长度
-        -1: 无效
-        -2: 报文不完整
+        return (int):
+            正整数: 报文长度
+            -1: 无效
+            -2: 报文不完整
     """
 
     # 检查引导字和保留字
@@ -82,12 +83,12 @@ def get_crc(msg, div='1100001100100110011111011', code='0'*24):
     https://gist.github.com/evansneath/4650991
 
     Args:
-        msg: 需要校验的信息
-        div: 生成多项式
-        code: 需要校验的信息
+        msg (str): 需要校验的信息
+        div (str): 生成多项式
+        code (str): 需要校验的信息
 
     Returns:
-        CRC码，默认使用 CRC-24Q 方法
+        return (str): CRC码，默认使用 CRC-24Q 方法
     """
     # Append the code to the message. If no code is given, default to '000'
     msg += code
@@ -112,10 +113,10 @@ def get_msg_type(msg):
     """判断报文类型
 
     Args:
-        msg: 待解析消息
+        msg (list): 待解析消息
 
     Returns:
-        msg_type: 消息类型
+        msg_type (int): 消息类型
     """
     msg_type = (msg[0] << 4) + ((msg[1] & 0xF0) >> 4)
     return msg_type

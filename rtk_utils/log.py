@@ -21,8 +21,8 @@ class Log:
         使用本模块中的其他方法之前必须调用本方法。
 
         Args:
-            name: log 名字
-            to_file: 写入到文件系统 (default True)
+            name (str): log 名字
+            to_file (bool): 写入到文件系统 (default True)
         """
 
         self.logger = logging.getLogger(name)

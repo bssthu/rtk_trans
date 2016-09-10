@@ -40,10 +40,10 @@ class Dispatcher:
         """分发数据
 
         Args:
-            data: 要分发的数据, bytes
+            data (bytes): 要分发的数据
 
         Returns:
-            客户端数量
+            return (int): 客户端数量
         """
         clients = self.clients.copy()   # 防止因中途被修改而异常
         for _id, sender in clients.items():
@@ -59,8 +59,8 @@ class Dispatcher:
         建立新的 SenderThread 并加入分发列表。
 
         Args:
-            client_socket: 与客户端通信的 socket
-            address: 客户端地址
+            client_socket (socket.socket): 与客户端通信的 socket
+            address (tuple[str, int]): 客户端地址
         """
         sender = SenderThread(client_socket, address, self.new_client_id)
         self.clients[self.new_client_id] = sender

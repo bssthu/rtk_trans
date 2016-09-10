@@ -21,10 +21,10 @@ class StationClientThread(StationThread):
         """构造函数
 
         Args:
-            name: rtk 服务名
-            config: 配置
-            got_data_cb: 接收到数据包时调用的回调函数
-            update_status_cb: 更新差分状态的回调函数
+            name (str): rtk 服务名
+            config (dict): 配置
+            got_data_cb (Callable[[bytes], None]): 接收到数据包时调用的回调函数
+            update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__(name, config, got_data_cb, update_status_cb)
         self.server_ip = config['stationIpAddress']
@@ -56,7 +56,7 @@ class StationClientThread(StationThread):
         在超时时返回（重连），在出错时返回（重连）。
 
         Args:
-            conn: 新建的连接 socket
+            conn (socket.socket): 新建的连接 socket
         """
         # start connection thread
         address = str((self.server_ip, self.server_port))
@@ -78,11 +78,3 @@ class StationClientThread(StationThread):
             raise socket.timeout('%s when connect' % e)
         client.settimeout(3)
         return client
-
-    def reconnect(self, client):
-        """重连 socket"""
-        try:
-            client.close()
-        except:
-            log.error('station client exception when close.')
-        return self.connect()

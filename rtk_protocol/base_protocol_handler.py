@@ -18,7 +18,7 @@ class BaseProtocolHandler(BaseDataHandler):
         """构造函数
 
         Args:
-            config: 配置
+            config (dict): 配置
         """
         super().__init__()
         self.config = config
@@ -36,7 +36,7 @@ class BaseProtocolHandler(BaseDataHandler):
         """解析数据
 
         Returns:
-            解析了的完整报文
+            return (bytes): 解析了的完整报文
         """
 
         # 拷贝

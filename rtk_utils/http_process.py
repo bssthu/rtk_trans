@@ -21,9 +21,9 @@ class HttpProcess:
         """构造函数
 
         Args:
-            http_port: web 服务器端口号, None 表示不开启
-            rtk_names: 开启的 rtk 服务名
-            status_queue: 差分状态队列
+            http_port (int): web 服务器端口号, None 表示不开启
+            rtk_names (list[str]): 开启的 rtk 服务名
+            status_queue (multiprocessing.Queue): 差分状态队列
         """
         self.port = http_port
         self.rtk_names = rtk_names
@@ -51,8 +51,8 @@ class HttpProcess:
         """更新 rtk 状态
 
         Args:
-            name: rtk 服务名
-            status: 服务当前状态, None 表示只 update_rcv_time
+            name (str): rtk 服务名
+            status (str): 服务当前状态, None 表示只 update_rcv_time
         """
         self.status_queue.put((name, status))
 
@@ -61,10 +61,10 @@ def process_http(quit_event, rtk_status_queue, http_port, rtk_names):
     """HTTP 进程主函数
 
     Args:
-        quit_event: 需要退出的事件
-        rtk_status_queue: 更新状态的队列
-        http_port: web 服务器端口号
-        rtk_names: 开启的 rtk 服务名
+        quit_event (multiprocessing.Event): 需要退出的事件
+        rtk_status_queue (multiprocessing.Queue): 更新状态的队列
+        http_port (int): web 服务器端口号
+        rtk_names (list[str]): 开启的 rtk 服务名
     """
     if http_port is not None:
         log.init(PROCESS_NAME)
@@ -96,8 +96,8 @@ def update_from_queue(q, cb):
     """从队列中取出数据并依次执行操作
 
     Args:
-        <multiprocessing.Queue> q: 队列
-        cb: 回调函数
+        q (multiprocessing.Queue): 队列
+        cb (Callable[[str], None]): 回调函数
     """
     try:
         while not q.empty():

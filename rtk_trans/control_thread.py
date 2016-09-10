@@ -24,8 +24,8 @@ class ControlThread(threading.Thread):
         """构造函数
 
         Args:
-            port: 控制端口号, None 表示不启用
-            got_command_cb: 接收到指令时调用的回调函数
+            port (int): 控制端口号, None 表示不启用
+            got_command_cb (Callable[[bytes], None]): 接收到指令时调用的回调函数
         """
         super().__init__()
         self.port = port
@@ -72,7 +72,7 @@ class ControlThread(threading.Thread):
         尝试接受连接，如果有新连接，就关闭旧的连接。
 
         Args:
-            server: server socket
+            server (socket.socket): server socket
         """
         try:
             conn, address = server.accept()

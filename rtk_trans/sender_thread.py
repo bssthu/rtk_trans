@@ -20,9 +20,9 @@ class SenderThread(threading.Thread):
         """构造函数
 
         Args:
-            client_socket: 与客户端通信的 socket
-            address: 客户端地址
-            _id: SenderThread 的 ID
+            client_socket (socket.socket): 与客户端通信的 socket
+            address (tuple[str, int]): 客户端地址
+            _id (int): SenderThread 的 ID
         """
         super().__init__()
         self.client_socket = client_socket

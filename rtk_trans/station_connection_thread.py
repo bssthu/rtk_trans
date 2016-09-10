@@ -27,10 +27,10 @@ class StationConnectionThread(threading.Thread):
         """构造函数
 
         Args:
-            name: rtk 服务名
-            client_socket: 与客户端通信的 socket
-            address: 客户端地址
-            config: 配置
+            name (str): rtk 服务名
+            client_socket (socket.socket): 与客户端通信的 socket
+            address (str): 客户端地址，用于 log
+            config (dict): 配置
         """
         super().__init__()
         self.name = name
@@ -100,7 +100,11 @@ class StationConnectionThread(threading.Thread):
             self.client_socket.sendall(data)
 
     def parse_data(self, data):
-        """收到数据后的处理"""
+        """收到数据后的处理
+
+        Args:
+            data (list): rtk 服务名
+        """
         self.rcv_count += 1
         log.debug('rcv %d bytes. id: %d' % (len(data), self.rcv_count))
         self.protocol_handler.push_back(data)
@@ -119,7 +123,7 @@ class StationConnectionThread(threading.Thread):
         """向发送队列加入数据
 
         Args:
-            <bytes> data: 要发送的数据
+            data (bytes): 要发送的数据
         """
         self.data_queue.put(data)
 
