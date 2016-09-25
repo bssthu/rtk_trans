@@ -69,7 +69,8 @@ def process_main(quit_event, queue_out, name, config):
 
     while rtk_thread.running:
         try:
-            quit_event.wait(timeout=3)
+            if quit_event.wait(timeout=3):      # true means event set
+                break
         except KeyboardInterrupt:
             pass
 
