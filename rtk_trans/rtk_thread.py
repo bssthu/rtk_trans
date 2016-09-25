@@ -13,6 +13,7 @@ from rtk_trans.control_thread import ControlThread
 from rtk_trans.server_thread import ServerThread
 from rtk_trans.station_client_thread import StationClientThread
 from rtk_trans.station_server_thread import StationServerThread
+from rtk_utils.http_thread import RtkStatus
 from rtk_utils import log
 
 
@@ -111,12 +112,14 @@ class RtkThread(threading.Thread):
         self.station.start()
 
         # wait
-        while self.running:
+        while self.running and self.server.running and self.station.running:
             time.sleep(2)
 
         # quit & clean up
         self.stop_thread('controller', self.controller)
         self.stop_thread('station', self.station)
         self.stop_thread('server', self.server)
+
+        self.update_status_cb(RtkStatus.S_TERMINATED)
 
         log.info('rtk thread: bye')

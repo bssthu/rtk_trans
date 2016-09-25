@@ -79,10 +79,10 @@ class StationConnectionThread(threading.Thread):
                 self.parse_data(data)
                 timeout_count = 0
             except socket.timeout:
-                # 超时处理，超时5次时主动断开
+                # 超时处理，超时 10 次时主动断开
                 # 超时时间短是为了在需要时能快速退出
                 timeout_count += 1
-                if timeout_count >= 5:
+                if timeout_count >= 10:
                     self.running = False
                     log.info('station connection thread: timeout')
         self.disconnect()
