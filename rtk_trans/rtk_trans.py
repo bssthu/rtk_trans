@@ -101,15 +101,16 @@ class Rtk:
                 # start one thread
                 try:
                     if name in self.rtk_threads.keys():
-                        rtk_thread = self.rtk_threads[name]
-                        # 判断配置是否发生改变，如果不变就跳过
-                        if rtk_thread.config == config:
+                        # 如果已有
+                        rtk_group = self.rtk_threads[name]
+                        # 判断配置是否发生改变，如果不变并且在运行，就跳过
+                        if rtk_group.is_alive() and rtk_group.config == config:
                             continue
                         self.stop_and_wait_for_thread(name)
-                    rtk_thread = RtkGroup(name, self.thread_count, config, self.status_queue)
+                    rtk_group = RtkGroup(name, self.thread_count, config, self.status_queue)
                     self.thread_count += 1
-                    rtk_thread.start()
-                    self.rtk_threads[name] = rtk_thread
+                    rtk_group.start()
+                    self.rtk_threads[name] = rtk_group
                 except Exception as e:
                     log.error('main: failed to start thread %s: %s' % (name, e))
 

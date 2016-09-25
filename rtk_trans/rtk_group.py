@@ -48,6 +48,9 @@ class RtkGroup:
         self.p.join()
         self.status_queue.put((self.name, RtkStatus.S_TERMINATED))
 
+    def is_alive(self):
+        return self.p.is_alive()
+
 
 def process_main(quit_event, queue_out, name, config):
     """进程主函数
@@ -64,10 +67,11 @@ def process_main(quit_event, queue_out, name, config):
     rtk_thread = RtkThread(name, config, lambda status: queue_out.put((name, status)))
     rtk_thread.start()
 
-    try:
-        quit_event.wait()
-    except KeyboardInterrupt:
-        pass
+    while rtk_thread.running:
+        try:
+            quit_event.wait(timeout=3)
+        except KeyboardInterrupt:
+            pass
 
     rtk_thread.running = False
     rtk_thread.join()

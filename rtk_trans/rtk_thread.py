@@ -123,3 +123,4 @@ class RtkThread(threading.Thread):
         self.update_status_cb(RtkStatus.S_TERMINATED)
 
         log.info('rtk thread: bye')
+        self.running = False
