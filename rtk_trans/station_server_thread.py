@@ -14,6 +14,7 @@ from rtk_trans import handshake_timeout_second
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
 from rtk_utils import log
+from rtk_utils.http_thread import RtkStatus
 
 
 class StationServerThread(StationThread):
@@ -77,6 +78,7 @@ class StationServerThread(StationThread):
             address (str): 地址 str
         """
         new_connection_thread = StationConnectionThread(self.name, conn, address, self.config)
+        self.update_status_cb(RtkStatus.S_CONNECTED)
         new_connection_thread.start()
         self.new_connections.append((new_connection_thread, time.time()))
 
@@ -93,8 +95,9 @@ class StationServerThread(StationThread):
                 if self.connection_thread is not None and self.connection_thread.is_alive():
                     # stop old
                     log.info('stopping existing station connection thread.')
-                    self.connection_thread.running = False  # 不用等待
                     self.connection_thread.got_data_cb = lambda data: None
+                    self.connection_thread.update_status_cb = lambda status: None
+                    self.connection_thread.running = False  # 不用等待
                 # set new connection_thread
                 self.connection_thread = connection_thread
                 self.connection_thread.got_data_cb = self.got_data_cb

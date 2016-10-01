@@ -113,6 +113,10 @@ class RtkStatus:
         else:
             try:
                 if name in RtkStatus.rtk_status.keys():
+                    if status == RtkStatus.S_CONNECTED:
+                        if RtkStatus.rtk_status[name] not in (RtkStatus.S_UNKNOWN, RtkStatus.S_DISCONNECTED):
+                            # 特殊处理 S_CONNECTED，如果已经有连接，就不更新状态
+                            return
                     RtkStatus.rtk_status[name] = status
             except Exception as e:
                 log.warning('Failed when update status: %s' % e)
