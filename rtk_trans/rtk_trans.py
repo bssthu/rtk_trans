@@ -8,7 +8,6 @@
 
 import json
 import multiprocessing
-from multiprocessing import Queue
 import os
 import signal
 import sys
@@ -25,7 +24,8 @@ class Rtk:
         self.thread_count = 0
         self.web_interface_thread = None
         self.is_interrupt = False
-        self.status_queue = Queue()
+        self.rtk_names_queue = multiprocessing.Queue()
+        self.status_queue = multiprocessing.Queue()
         # log init
         self.configs = self.load_config()
         if 'logPath' in self.configs.keys() and os.path.isdir(self.configs['logPath']):
@@ -73,20 +73,25 @@ class Rtk:
         configs = self.load_config()
         self.configs = configs
 
+        # web 管理界面
+        try:
+            port = configs['webInterface']['port']
+            if configs['webInterface']['allow'].lower() == 'true':
+                self.start_web_interface(port)
+        except Exception as e:
+            log.error('main: failed to start web interface: %s' % e)
         # rtk 转发服务
         try:
             if 'entry' in configs.keys():
                 self.start_rtk_threads(configs['entry'])
         except Exception as e:
             log.error('main: failed to start rtk threads: %s' % e)
-        # web 管理界面
+        # web 管理界面的配置
         try:
-            port = configs['webInterface']['port']
-            if configs['webInterface']['allow'].lower() != 'true':
-                port = None
-            self.start_web_interface(port, sorted(configs['entry'].keys()))
+            if configs['webInterface']['allow'].lower() == 'true':
+                self.update_web_interface(sorted(configs['entry'].keys()))
         except Exception as e:
-            log.error('main: failed to start web interface: %s' % e)
+            log.error('main: failed to update web interface: %s' % e)
 
     def start_rtk_threads(self, entries):
         """停止某 rtk 线程，不等待
@@ -166,18 +171,25 @@ class Rtk:
         self.stop_thread(name)
         self.wait_for_thread(name)
 
-    def start_web_interface(self, port, rtk_names):
+    def start_web_interface(self, port):
         """启动 web 管理服务器
 
         Args:
             port (int): web 服务器端口号
+        """
+        if self.web_interface_thread is None:
+            # start new
+            self.web_interface_thread = HttpProcess(port, self.rtk_names_queue, self.status_queue)
+            self.web_interface_thread.start()
+
+    def update_web_interface(self, rtk_names):
+        """更新 web 管理服务器的配置
+
+        Args:
             rtk_names (list[str]): 开启的 rtk 服务名
         """
-        # stop old
-        self.stop_and_wait_for_web_interface()
-        # start new
-        self.web_interface_thread = HttpProcess(port, rtk_names, self.status_queue)
-        self.web_interface_thread.start()
+        if self.web_interface_thread is not None:
+            self.web_interface_thread.update_names(rtk_names)
 
     def stop_and_wait_for_web_interface(self):
         """关闭 web 管理服务器"""

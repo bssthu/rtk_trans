@@ -19,27 +19,16 @@ from rtk_utils import log
 class HttpThread(threading.Thread):
     """http 服务器，web 管理"""
 
-    def __init__(self, http_port, rtk_names):
+    def __init__(self, http_port):
         """构造函数
 
         Args:
             http_port (int): web 服务器端口号
-            rtk_names (list[str]): 开启的 rtk 服务名
         """
         super().__init__()
         self.port = http_port
-        self.update_names(rtk_names)
-
         self.server = None
-
-    def update_names(self, rtk_names):
-        """更新 rtk 状态查询的名字表
-
-        Args:
-            rtk_names (list[str]): 开启的 rtk 服务名
-        """
-        log.info('http thread: load %d name(s)' % len(rtk_names))
-        RtkStatus.update_names(rtk_names)
+        RtkStatus.server_start_time = get_time_string()
 
     def run(self):
         """线程主函数
@@ -68,6 +57,7 @@ class RtkStatus:
     """rtk 服务状态管理"""
     rtk_last_rcv_time = {}
     rtk_status = {}
+    server_start_time = None
 
     S_UNKNOWN = 'unknown'
     S_CONNECTED = 'online'
@@ -77,13 +67,23 @@ class RtkStatus:
 
     @staticmethod
     def update_names(names):
-        """更新 rtk 服务列表
+        """更新 rtk 服务名字列表
 
         Args:
             names (list[str]): 开启的 rtk 服务名
         """
-        RtkStatus.rtk_last_rcv_time = {name: 'NULL' for name in names}
-        RtkStatus.rtk_status = {name: RtkStatus.S_UNKNOWN for name in names}
+        log.info('http thread: load %d name(s)' % len(names))
+        # update status
+        # add new name
+        for name in names:
+            if name not in RtkStatus.rtk_status:
+                RtkStatus.rtk_status[name] = RtkStatus.S_UNKNOWN
+                RtkStatus.rtk_last_rcv_time[name] = 'NULL'
+        # delete outdated name
+        for name in RtkStatus.rtk_status.copy().keys():
+            if name not in names:
+                del RtkStatus.rtk_status[name]
+                del RtkStatus.rtk_last_rcv_time[name]
 
     @staticmethod
     def update_rcv_time(name):
@@ -144,6 +144,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />')
             self.wfile.write(b'</head><body>')
             self.wfile.write(('<div>server time: %s</div>' % get_time_string()).encode())
+            self.wfile.write(('<div>started at: %s</div>' % RtkStatus.server_start_time).encode())
             self.wfile.write(b'<div>...</div>')
             # body
             self.wfile.write(b'<div>possible status: unknown, online, receiving, offline, terminated.</div>')
