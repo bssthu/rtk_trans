@@ -32,6 +32,7 @@ class RtkGroup:
         self.p = Process(name=self.name, target=process_main,
                          args=(self.quit_event, self.status_queue, self.name, self.config))
         self.p.daemon = True
+        self.status_queue.put((self.name, RtkStatus.S_UNKNOWN))
 
     def start(self):
         if not self.p.is_alive():

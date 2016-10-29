@@ -94,9 +94,7 @@ class Rtk:
             log.error('main: failed to update web interface: %s' % e)
 
     def start_rtk_threads(self, entries):
-        """停止某 rtk 线程，不等待
-
-        之后需要调用 wait_for_thread
+        """根据配置文件启动 rtk 线程
 
         Args:
             entries (dict[str, dict]): 各组 rtk 转发配置
