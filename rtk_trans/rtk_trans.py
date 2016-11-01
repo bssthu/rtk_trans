@@ -100,6 +100,10 @@ class Rtk:
             entries (dict[str, dict]): 各组 rtk 转发配置
         """
         if isinstance(entries, dict):
+            # stop threads not in config
+            for name in sorted(self.rtk_threads.keys()):
+                if name not in entries.keys():
+                    self.stop_and_wait_for_thread(name)
             # start threads from config
             for name, config in entries.items():
                 # start one thread
@@ -117,11 +121,6 @@ class Rtk:
                     self.rtk_threads[name] = rtk_group
                 except Exception as e:
                     log.error('main: failed to start thread %s: %s' % (name, e))
-            # stop threads not in config
-            for name in self.rtk_threads.keys():
-                if name not in entries.keys():
-                    self.stop_and_wait_for_thread(name)
-                    del self.rtk_threads[name]
 
     def stop_thread(self, name):
         """停止某 rtk 线程，不等待
