@@ -13,6 +13,35 @@ import sys
 from rtk_utils import log
 
 
+class Entry(object):
+    """基站配置对象"""
+    def __init__(self, config):
+        self.station_port = int(config['stationPort'])
+        self.station_mode = str(config['stationMode']).lower().strip()
+        self.station_ip_address = str(config['stationIpAddress']).strip() \
+            if 'stationIpAddress' in config.keys() else None
+        self.listen_port = int(config['listenPort'])
+        self.control_port = int(config['controlPort']) \
+            if 'controlPort' in config.keys() else None
+        self.filter = tuple(config['filter']) \
+            if 'filter' in config.keys() else None
+        self.enable_log = (str(config['enableLog']).lower().strip() == 'true') \
+            if 'enableLog' in config.keys() else False
+        self.save_raw = (str(config['saveRaw']).lower().strip() == 'true') \
+            if 'saveRaw' in config.keys() else False
+
+        if self.station_mode != 'server' and self.station_mode != 'client':
+            raise Exception('Unrecognized station mode "%s". Should be "server" or "client".' % self.station_mode)
+        if self.station_mode == 'server' and self.station_ip_address is None:
+            raise Exception('Server station ip not set.')
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+
 def load_config():
     """载入配置文件
 
@@ -46,4 +75,12 @@ def load_config():
                 except Exception as e:
                     log.error('main: failed to load config from conf/%s: %s' % (file_name, e))
 
+    # convert
+    entries = {}
+    for name, json_entry in configs['entry'].items():
+        try:
+            entries[name] = Entry(json_entry)
+        except Exception as e:
+            log.error('failed to parse config %s: %s' % (name, e))
+    configs['entry'] = entries
     return configs

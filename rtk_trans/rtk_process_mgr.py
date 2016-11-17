@@ -12,6 +12,7 @@ import time
 
 from rtk_trans.rtk_group import RtkGroup
 from rtk_utils import log
+from rtk_utils.config_loader import Entry
 from rtk_utils.http_process import HttpProcess
 
 
@@ -53,7 +54,7 @@ class RtkProcessMgr(threading.Thread):
         """根据配置文件启动 rtk 线程
 
         Args:
-            entries (dict[str, dict]): 各组 rtk 转发配置
+            entries (dict[str, Entry]): 各组 rtk 转发配置
         """
         if isinstance(entries, dict):
             # stop threads not in config
@@ -62,21 +63,22 @@ class RtkProcessMgr(threading.Thread):
                     self.stop_and_wait_for_thread(name)
             # start threads from config
             for name, config in entries.items():
-                # start one thread
-                try:
-                    if name in self.rtk_threads.keys():
-                        # 如果已有
-                        rtk_group = self.rtk_threads[name]
-                        # 判断配置是否发生改变，如果不变并且在运行，就跳过
-                        if rtk_group.is_alive() and rtk_group.config == config:
-                            continue
-                        self.stop_and_wait_for_thread(name)
-                    rtk_group = RtkGroup(name, self.thread_count, config, self.status_queue)
-                    self.thread_count += 1
-                    rtk_group.start()
-                    self.rtk_threads[name] = rtk_group
-                except Exception as e:
-                    log.error('main: failed to start thread %s: %s' % (name, e))
+                if isinstance(config, Entry):
+                    # start one thread
+                    try:
+                        if name in self.rtk_threads.keys():
+                            # 如果已有
+                            rtk_group = self.rtk_threads[name]
+                            # 判断配置是否发生改变，如果不变并且在运行，就跳过
+                            if rtk_group.is_alive() and rtk_group.config == config:
+                                continue
+                            self.stop_and_wait_for_thread(name)
+                        rtk_group = RtkGroup(name, self.thread_count, config, self.status_queue)
+                        self.thread_count += 1
+                        rtk_group.start()
+                        self.rtk_threads[name] = rtk_group
+                    except Exception as e:
+                        log.error('main: failed to start thread %s: %s' % (name, e))
 
     def stop_thread(self, name):
         """停止某 rtk 线程，不等待

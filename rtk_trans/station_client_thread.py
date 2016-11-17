@@ -11,6 +11,7 @@ import time
 
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
+from rtk_utils.config_loader import Entry
 from rtk_utils import log
 
 
@@ -22,13 +23,13 @@ class StationClientThread(StationThread):
 
         Args:
             name (str): rtk 服务名
-            config (dict): 配置
+            config (Entry): 配置
             got_data_cb (Callable[[bytes], None]): 接收到数据包时调用的回调函数
             update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__(name, config, got_data_cb, update_status_cb)
-        self.server_ip = config['stationIpAddress']
-        self.server_port = config['stationPort']
+        self.server_ip = config.station_ip_address
+        self.server_port = config.station_port
 
     def run(self):
         """线程主函数

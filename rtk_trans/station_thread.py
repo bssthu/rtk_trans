@@ -7,6 +7,7 @@
 # 
 
 import threading
+from rtk_utils.config_loader import Entry
 
 
 class StationThread(threading.Thread):
@@ -17,7 +18,7 @@ class StationThread(threading.Thread):
 
         Args:
             name (str): rtk 服务名
-            config (dict): 配置
+            config (Entry): 配置
             got_data_cb (Callable[[bytes], None]): 接收到数据包时调用的回调函数
             update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """

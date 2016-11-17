@@ -9,6 +9,7 @@
 from multiprocessing import Process, Event
 
 from rtk_trans.rtk_thread import RtkThread
+from rtk_utils.config_loader import Entry
 from rtk_utils import log
 from rtk_utils.http_thread import RtkStatus
 
@@ -20,7 +21,7 @@ class RtkGroup:
         Args:
             name (str): rtk 线程名
             thread_id (int): 线程 id
-            config (dict): 配置表
+            config (Entry): 配置表
             status_queue (multiprocessing.Queue): 更新差分状态的队列
         """
         self.name = name
@@ -60,10 +61,9 @@ def process_main(quit_event, queue_out, name, config):
         quit_event (multiprocessing.Event): 需要退出的事件
         queue_out (multiprocessing.Queue): 每当收到数据时，将线程名填入此队列
         name (str): 线程名
-        config (dict): 配置表
+        config (Entry): 配置表
     """
-    enable_log = config['enableLog'].lower() == 'true'
-    log.init(name, enable_log)
+    log.init(name, config.enable_log)
 
     rtk_thread = RtkThread(name, config, lambda status: queue_out.put((name, status)))
     rtk_thread.start()

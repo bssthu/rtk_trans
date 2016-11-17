@@ -13,6 +13,7 @@ from rtk_trans.control_thread import ControlThread
 from rtk_trans.server_thread import ServerThread
 from rtk_trans.station_client_thread import StationClientThread
 from rtk_trans.station_server_thread import StationServerThread
+from rtk_utils.config_loader import Entry
 from rtk_utils.http_thread import RtkStatus
 from rtk_utils import log
 
@@ -23,7 +24,7 @@ class RtkThread(threading.Thread):
 
         Args:
             name (str): rtk 线程名
-            config (dict): 配置 dict
+            config (Entry): 配置 dict
             update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__()
@@ -35,20 +36,11 @@ class RtkThread(threading.Thread):
         self.running = True
 
         self.config = config
-        self.station_mode = config['stationMode'].lower().strip()
-        if self.station_mode != 'server' and self.station_mode != 'client':
-            raise Exception('Unrecognized station mode "%s". Should be "server" or "client". %s' %
-                            self.station_mode)
-        if self.station_mode == 'server':
-            self.station_ip_address = config['stationIpAddress']
-        else:
-            self.station_ip_address = None
-        self.station_port = config['stationPort']
-        self.listen_port = config['listenPort']
-        self.control_port = config['controlPort'] if 'controlPort' in config.keys() else None
-        self.rtk_filter = config['filter'] if 'filter' in config.keys() else None
-        if not isinstance(self.rtk_filter, list):
-            self.rtk_filter = None
+        self.station_mode = config.station_mode
+
+        self.listen_port = config.listen_port
+        self.control_port = config.control_port
+        self.rtk_filter = config.filter
 
     def got_data_cb(self, data):
         """接收到差分数据的回调函数

@@ -13,6 +13,7 @@ import time
 from rtk_trans import handshake_timeout_second
 from rtk_trans.station_connection_thread import StationConnectionThread
 from rtk_trans.station_thread import StationThread
+from rtk_utils.config_loader import Entry
 from rtk_utils import log
 from rtk_utils.http_thread import RtkStatus
 
@@ -25,12 +26,12 @@ class StationServerThread(StationThread):
 
         Args:
             name (str): rtk 服务名
-            config (dict): 配置
+            config (Entry): 配置
             got_data_cb (Callable[[bytes], None]): 接收到数据包时调用的回调函数
             update_status_cb (Callable[[str], None]): 更新差分状态的回调函数
         """
         super().__init__(name, config, got_data_cb, update_status_cb)
-        self.port = config['stationPort']
+        self.port = config.station_port
         self.new_connections = []   # 成员为: (连接线程, 连接建立时间)
 
     def run(self):

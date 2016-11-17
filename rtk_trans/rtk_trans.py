@@ -14,6 +14,7 @@ import time
 from rtk_trans.rtk_process_mgr import RtkProcessMgr
 from rtk_utils import log
 from rtk_utils import config_loader
+from rtk_utils.config_loader import Entry
 
 
 class Rtk:
@@ -53,9 +54,8 @@ class Rtk:
                     try:
                         print('name, station_port, dispatch_port, control_port')
                         for name, config in sorted(self.configs['entry'].items()):
-                            control_port = str(config['controlPort']) if 'controlPort' in config else None
                             print('%s, %d, %d, %s'
-                                  % (name, config['stationPort'], config['listenPort'], control_port))
+                                  % (name, config.station_port, config.listen_port, str(config.control_port)))
                     except Exception as e:
                         print('Error when list config: %s' % e)
         except KeyboardInterrupt:
