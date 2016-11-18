@@ -6,7 +6,8 @@
             "stationMode": "server",
             "listenPort": 10002,
             "controlPort": 10001,
-            "enableLog": "true"
+            "enableLog": "true",
+            "enableRaw": "true"
         },
         "remote": {
             "stationPort": 10000,
@@ -21,5 +22,6 @@
         "allow": "true",
         "port": 20000
     },
-    "logPath": "logs/"
+    "logPath": "logs/",
+    "rawPath": "logs/raw/"
 }

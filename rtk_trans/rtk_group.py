@@ -10,7 +10,7 @@ from multiprocessing import Process, Event
 
 from rtk_trans.rtk_thread import RtkThread
 from rtk_utils.config_loader import Entry
-from rtk_utils import log
+from rtk_utils import log, base64_log
 from rtk_utils.http_thread import RtkStatus
 
 
@@ -64,6 +64,7 @@ def process_main(quit_event, queue_out, name, config):
         config (Entry): 配置表
     """
     log.init(name, config.enable_log)
+    base64_log.init(name + '_raw', config.enable_raw)
 
     rtk_thread = RtkThread(name, config, lambda status: queue_out.put((name, status)))
     rtk_thread.start()
@@ -79,3 +80,4 @@ def process_main(quit_event, queue_out, name, config):
     rtk_thread.join()
 
     log.close(name)
+    base64_log.close(name + '_raw')

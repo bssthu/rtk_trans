@@ -12,9 +12,8 @@ import signal
 import time
 
 from rtk_trans.rtk_process_mgr import RtkProcessMgr
-from rtk_utils import log
+from rtk_utils import log, base64_log
 from rtk_utils import config_loader
-from rtk_utils.config_loader import Entry
 
 
 class Rtk:
@@ -25,6 +24,8 @@ class Rtk:
         self.configs = config_loader.load_config()
         if 'logPath' in self.configs.keys() and os.path.isdir(self.configs['logPath']):
             log.log_dir = self.configs['logPath']
+        if 'rawPath' in self.configs.keys() and os.path.isdir(self.configs['rawPath']):
+            base64_log.log_dir = self.configs['rawPath']
 
         self.rtk_mgr = RtkProcessMgr(self.configs)
 
@@ -82,3 +83,4 @@ class Rtk:
 
         log.info('main: bye')
         log.close_all()
+        base64_log.close_all()

@@ -23,12 +23,12 @@ class Entry(object):
         self.listen_port = int(config['listenPort'])
         self.control_port = int(config['controlPort']) \
             if 'controlPort' in config.keys() else None
-        self.filter = tuple(config['filter']) \
+        self.filter = list(config['filter']) \
             if 'filter' in config.keys() else None
         self.enable_log = (str(config['enableLog']).lower().strip() == 'true') \
             if 'enableLog' in config.keys() else False
-        self.save_raw = (str(config['saveRaw']).lower().strip() == 'true') \
-            if 'saveRaw' in config.keys() else False
+        self.enable_raw = (str(config['enableRaw']).lower().strip() == 'true') \
+            if 'enableRaw' in config.keys() else False
 
         if self.station_mode != 'server' and self.station_mode != 'client':
             raise Exception('Unrecognized station mode "%s". Should be "server" or "client".' % self.station_mode)

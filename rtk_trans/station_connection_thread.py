@@ -11,7 +11,8 @@ import socket
 import threading
 
 from rtk_protocol.select_protocol import select_protocol
-from rtk_utils import log
+from rtk_utils import log, base64_log
+from rtk_utils.config_loader import Entry
 from rtk_utils.http_thread import RtkStatus
 
 BUFFER_SIZE = 4096
@@ -30,7 +31,7 @@ class StationConnectionThread(threading.Thread):
             name (str): rtk 服务名
             client_socket (socket.socket): 与客户端通信的 socket
             address (str): 客户端地址，用于 log
-            config (dict): 配置
+            config (Entry): 配置
         """
         super().__init__()
         self.name = name
@@ -38,7 +39,7 @@ class StationConnectionThread(threading.Thread):
         self.address = address
 
         self.data_queue = queue.Queue()
-        self.protocol_handler = select_protocol(config)
+        self.protocol_handler = select_protocol(config.__dict__)
 
         self.got_data_cb = lambda data: None    # 连接建立后再设置
         self.update_status_cb = lambda status: None
@@ -103,10 +104,11 @@ class StationConnectionThread(threading.Thread):
         """收到数据后的处理
 
         Args:
-            data (list): rtk 服务名
+            data (list): 新收到的数据
         """
         self.rcv_count += 1
         log.debug('rcv %d bytes. id: %d' % (len(data), self.rcv_count))
+        base64_log.raw(bytes(data))
         self.protocol_handler.push_back(data)
 
         # 握手
