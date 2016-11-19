@@ -9,10 +9,36 @@
 import os
 import multiprocessing
 import logging
-from logging import handlers
+from logging import handlers, LogRecord, getLevelName
 
 log_dir = 'logs'
 loggers = {}
+
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
+COLORS = {
+    'DEBUG': GREEN,
+    'INFO': GREEN,
+    'WARNING': YELLOW,
+    'ERROR': RED,
+    'CRITICAL': RED
+}
+
+
+class ColoredLogRecord(LogRecord):
+    """增加 colorlevelname 一项"""
+    def __init__(self, name, level, pathname, lineno,
+                 msg, args, exc_info, func=None, sinfo=None, **kwargs):
+        super().__init__(name, level, pathname, lineno,
+                         msg, args, exc_info, func, sinfo, **kwargs)
+        self.colorlevelname = get_color_level_name(level)
+
+
+def get_color_level_name(level):
+    level_name = getLevelName(level)
+    if level_name in COLORS:
+        return '\033[1;%dm%s\033[0m' % (30 + COLORS[level_name], level_name)
+    else:
+        return level_name
 
 
 class Log:
@@ -26,10 +52,12 @@ class Log:
             to_file (bool): 写入到文件系统 (default True)
         """
 
+        logging.setLogRecordFactory(ColoredLogRecord)
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        color_formatter = logging.Formatter('%(asctime)s - %(name)s - %(colorlevelname)s - %(message)s')
 
         # to file
         self.fh = None
@@ -45,7 +73,7 @@ class Log:
         # to screen
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
-        ch.setFormatter(formatter)
+        ch.setFormatter(color_formatter)
         self.logger.addHandler(ch)
         self.ch = ch
         self.logging = True
