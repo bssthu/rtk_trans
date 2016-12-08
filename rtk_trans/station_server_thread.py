@@ -110,3 +110,8 @@ class StationServerThread(StationThread):
                 connection_thread.got_data_cb = lambda data: None
                 connection_thread.update_status_cb = lambda status: None
                 self.new_connections.remove((connection_thread, established_time_sec))
+
+        if len(self.new_connections) == 0 and \
+                self.connection_thread is not None and not self.connection_thread.running:
+            # 没有新连接，旧连接有过但也断了，那么判为断开状态
+            self.update_status_cb(RtkStatus.S_DISCONNECTED)

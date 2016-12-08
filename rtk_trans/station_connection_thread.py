@@ -62,6 +62,7 @@ class StationConnectionThread(threading.Thread):
         except Exception as e:
             log.error('station connection thread error: %s' % e)
         self.update_status_cb(RtkStatus.S_DISCONNECTED)
+        self.running = False
         log.info('station connection thread: bye')
 
     def send_and_receive_data(self):
